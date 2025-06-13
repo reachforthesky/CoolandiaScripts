@@ -130,5 +130,3 @@ public class PlayerController : MonoBehaviour
     }
 
 }
-
-public enum Stat { toolbeltSize }

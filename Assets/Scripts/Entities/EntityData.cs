@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System;
 
 public class EntityData : MonoBehaviour
 {
@@ -13,6 +14,14 @@ public class EntityData : MonoBehaviour
     [Header("Corpse")]
     public EntityData corpsePrefab;
 
+    private StatHandler statHandler;
+
+    public event Action<int> receiveHit;
+
+    void Awake()
+    {
+        statHandler = GetComponent<StatHandler>();
+    }
     /// <summary>
     /// Called when an item (e.g., axe, pickaxe) is used on this entity.
     /// </summary>
@@ -23,13 +32,12 @@ public class EntityData : MonoBehaviour
 
         if (effectiveTool == ToolType.None || tool == effectiveTool)
         {
-            health--;
-            Debug.Log($"{name} was hit with a {tool}. Remaining health: {health}");
-
-            if (health <= 0)
+            if (statHandler && statHandler.stats.ContainsKey(Stat.health))
             {
-                DestroyEntity();
+                statHandler.stats[Stat.health]-= usedItem.damage;
+                Debug.Log($"{name} was hit with a {tool}. Remaining health: {health}");
             }
+            receiveHit?.Invoke(usedItem.damage);
         }
         else
         {
@@ -37,7 +45,7 @@ public class EntityData : MonoBehaviour
         }
     }
 
-    private void DestroyEntity()
+    public void DestroyEntity()
     {
         Debug.Log($"{name} destroyed!");
 

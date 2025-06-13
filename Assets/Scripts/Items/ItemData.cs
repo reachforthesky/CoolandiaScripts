@@ -8,6 +8,7 @@ public class ItemData : ScriptableObject
     public Sprite icon;
     public bool isStackable = true;
     public ToolType toolType;
+    public int damage = 1;
 }
 
 public enum ToolType { None, Axe, Pick }
