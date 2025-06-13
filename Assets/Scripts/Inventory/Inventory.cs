@@ -19,34 +19,6 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    /*public bool AddItem(ItemData item, int quantity = 1)
-    {
-        if (item.isStackable)
-        {
-            var existingSlot = slots.Find(s => s.Matches(item));
-            if (existingSlot != null)
-            {
-                existingSlot.stack.quantity += quantity;
-                UpdateInventory?.Invoke();  
-                return true;
-            }
-        }
-
-        foreach (var slot in slots)
-        {
-            if (!slot.stack.item)
-            {
-                slot.stack.item = item;
-                slot.stack.quantity = quantity;
-                UpdateInventory?.Invoke();
-                return true;
-            }
-        }
-
-        Debug.Log("Inventory full!");
-        return false;
-    }*/
-
     public bool AddItem(ItemStack stack)
     {
         if (stack == null || stack.item == null)

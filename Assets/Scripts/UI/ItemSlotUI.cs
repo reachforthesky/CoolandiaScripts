@@ -11,6 +11,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     public Image icon;
     public TextMeshProUGUI stackText;
     public Image highlight;
+    public TextMeshProUGUI placeholderText;
 
 
     public ItemSlotBinding binding; 
@@ -37,6 +38,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
         icon.enabled = stack.item;
         icon.sprite = stack.item?.icon;
         stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
+        SetPlaceholder(stack.item); 
     }
     public void SetStack(ItemStack stack)
     {
@@ -53,6 +55,16 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
             icon.sprite = stack.item.icon;
             stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         }
+    }
+
+    public void SetPlaceholder(ItemData itemData)
+    {
+        if (!icon.sprite && itemData != null)
+        {
+            placeholderText.enabled = true;
+            placeholderText.text = itemData.name;
+        }
+        else { placeholderText.enabled = false; }
     }
 
     public void OnPointerClick(PointerEventData eventData) => OnClicked?.Invoke(this);
