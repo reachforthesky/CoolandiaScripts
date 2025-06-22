@@ -32,4 +32,6 @@ public class ItemStack
     {
         return new ItemStack(null, 0);
     }
+
+    public bool IsEmpty() { return this.item == null || this.quantity == 0; }
 }

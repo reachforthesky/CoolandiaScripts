@@ -1,2 +1,2 @@
 
-public enum Stat { toolbeltSize, health }
+public enum Stat { ToolbeltSize, Health, FuelAmount, ItemTier, BuildPower }

@@ -8,6 +8,8 @@ using System.Linq;
 using static UnityEditor.Searcher.SearcherWindow.Alignment;
 using Unity.VisualScripting;
 using UnityEditor.PackageManager;
+using Unity.Netcode;
+
 
 
 
@@ -21,7 +23,7 @@ using UnityEditor;
 
 [ExecuteAlways]
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer), typeof(MeshCollider))]
-public class TerrainGenerator : MonoBehaviour
+public class TerrainGenerator : NetworkBehaviour
 {
     public enum gizmoType { standard, plateau, ramp, none }
 
@@ -74,11 +76,15 @@ public class TerrainGenerator : MonoBehaviour
         }
     #endif
     }
-
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+        GenerateTerrain();
+    }
     
     public void GenerateTerrain()
     {
-
+        if (!IsServer) return;
         seededRandom = new System.Random(seed);
         mapData = new TileMapData(mapWidth, mapLength);
 

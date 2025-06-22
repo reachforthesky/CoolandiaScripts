@@ -1,11 +1,12 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerEquipment : MonoBehaviour
 {
-    public EquippableItemData?[] equippedArmor = new EquippableItemData[6];
+    public ItemData?[] equippedArmor = new ItemData[6];
 
     public event Action? onPlayerEquipNew;
 
@@ -13,12 +14,11 @@ public class PlayerEquipment : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Keypad3))
         {
-            EquippableItemData temp = (EquippableItemData)ScriptableObject.CreateInstance("EquippableItemData");
+            ItemData temp = (ItemData)ScriptableObject.CreateInstance("ItemData");
             temp.isStackable = false;
-            temp.equipType = EquipType.Belt;
-            temp.toolType = ToolType.None;
+            temp.tags = new List<Tag> { Tag.Belt };
             temp.itemName = "toolbelt";
-            temp.statBonuses.Add(Stat.toolbeltSize, 3);
+            temp.stats.Add(Stat.ToolbeltSize, 3);
             EquipArmor(temp);
         }
     }
@@ -31,12 +31,28 @@ public class PlayerEquipment : MonoBehaviour
         }
     }
 
-    public EquippableItemData? EquipArmor(EquippableItemData armor)
+    public ItemData? EquipArmor(ItemData armor)
     {
-        int armorIndex = (int)armor.equipType;
-        EquippableItemData? replacedArmor = equippedArmor[armorIndex];
+        int armorIndex = ItemDataToIndex(armor);
+        if (armorIndex < 0)
+            throw new Exception("Equipped Armor does not contain proper tag");
+        ItemData? replacedArmor = equippedArmor[armorIndex];
         equippedArmor[armorIndex] = armor;
         onPlayerEquipNew?.Invoke();
         return replacedArmor;
+    }
+
+    private int ItemDataToIndex(ItemData item)
+    {
+        foreach (Tag tag in item.tags) {
+            switch (tag)
+            {
+                case Tag.Belt:
+                    return 2;
+                default:
+                    continue;
+            }
+        }
+        return -1;
     }
 }

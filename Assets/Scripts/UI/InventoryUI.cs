@@ -2,69 +2,76 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.UI;
 
-public class InventoryUI : MonoBehaviour
+public class InventoryUI : MonoBehaviour, IBindableUI
 {
-    public GameObject inventoryPanel;
+    [Header("UI Setup")]
     public GameObject itemSlotPrefab;
     public RectTransform slotContainer;
-    public Inventory playerInventory;
 
+    private Inventory inventory;
 
-    [SerializeField] private KeyCode toggleKey = KeyCode.I;
+    private readonly List<ItemSlotUI> slots = new();
+    private ItemSlotUI selectedSlot;
 
-    private bool isVisible = false;
-    private List<ItemSlotUI> slots = new();
-    private ItemSlotUI selectedSlot = null;
-
-    void Start()
+    public void Bind(object inv)
     {
-        playerInventory.UpdateInventory += Redraw;
-        Redraw();
+        if(inv.GetType() != typeof(Inventory))
+        {
+            Debug.LogError("InventoryUI can only bind to Inventory instances.");
+            return;
+        }
+        var inventory = (Inventory)inv;
+        Debug.Log($"[InventoryUI] Binding to inventory on {inventory.gameObject.name}");
+        if (this.inventory != null)
+            this.inventory.UpdateInventory -= Redraw;
+
+        this.inventory = inventory;
+
+        if (inventory != null)
+        {
+            inventory.UpdateInventory -= Redraw;
+            inventory.UpdateInventory += Redraw;
+            Redraw();
+        }
     }
 
-    public void Update()
+    private void OnEnable()
     {
-        if (Input.GetKeyDown(toggleKey))
-        {
-            ToggleInventory();
-        }
+        Debug.Log("[InventoryUI] OnEnable called");
 
-        if (selectedSlot != null && (Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt)))
-        {
-            for (int i = 0; i < 9; i++)
-            {
-                if (Input.GetKeyDown(KeyCode.Alpha1 + i))
-                {
-                    TryAssignToToolbelt(i, selectedSlot);
-                    selectedSlot.highlight.enabled = false;
-                    selectedSlot = null; // clear after handling
-                    break;
-                }
-            }
-        }
+        if (inventory != null)
+            inventory.UpdateInventory += Redraw;
+    }
+
+    private void OnDisable()
+    {
+        if (inventory != null)
+            inventory.UpdateInventory -= Redraw;
     }
 
     public void Redraw()
     {
-        // Clear old slots
+        // Clear
         foreach (Transform child in slotContainer)
             Destroy(child.gameObject);
         slots.Clear();
+
         // Create new ones
-        foreach (var invSlot in playerInventory.slots)
+        foreach (var invSlot in inventory.slots)
         {
             var ui = Instantiate(itemSlotPrefab, slotContainer);
             var slot = ui.GetComponent<ItemSlotUI>();
             slot.SetStack(invSlot.stack);
-            slot.slotType = "inventory";
             slot.highlight.enabled = false;
-            slot.OnClicked += HandleSlotClicked;
+            slot.slotType = "inventory";
+
             var binding = new ItemSlotBinding(
                 () => invSlot.stack,
                 newStack => invSlot.stack = newStack
             );
 
             slot.Set(binding);
+            slot.OnClicked += HandleSlotClicked;
             slots.Add(slot);
         }
     }
@@ -72,31 +79,12 @@ public class InventoryUI : MonoBehaviour
     private void HandleSlotClicked(ItemSlotUI slot)
     {
         selectedSlot = slot;
-        foreach(var invSlot in slots)
-        {
+        foreach (var invSlot in slots)
             invSlot.highlight.enabled = false;
-        }
         slot.highlight.enabled = true;
-    }
-    private void TryAssignToToolbelt(int toolbeltIndex, ItemSlotUI inventorySlot)
-    {
-        var toolbelt = FindObjectOfType<Toolbelt>();
-        var temp = toolbelt.GetStack(toolbeltIndex);
 
-        toolbelt.SetStack(toolbeltIndex, inventorySlot.binding.GetStack());
-        inventorySlot.binding.SetStack(ItemStack.Empty());
-
-        playerInventory.AddItem(temp);
-        Redraw();
+        // Let an external UI (e.g. CampfireUI) decide what to do
     }
-    public void ToggleInventory()
-    {
-        isVisible = !isVisible;
-        inventoryPanel.SetActive(isVisible);
 
-        // Optional: Lock/unlock player controls or mouse here
-        Cursor.visible = isVisible;
-        Cursor.lockState = isVisible ? CursorLockMode.None : CursorLockMode.Locked;
-    }
+    public ItemSlotUI GetSelectedSlot() => selectedSlot;
 }
-

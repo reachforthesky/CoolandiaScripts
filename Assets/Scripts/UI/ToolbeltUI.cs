@@ -1,59 +1,88 @@
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
 
 public class ToolbeltUI : MonoBehaviour
 {
+    [Header("References")]
     public Toolbelt toolbelt;
-    public GameObject slotPrefab; // The ToolbeltSlotUI prefab
-    public Transform slotContainer; // The Horizontal Layout Group container
+    public GameObject slotPrefab; // Should be your shared ItemSlotUI prefab
+    public RectTransform slotContainer; // Horizontal Layout Group or Grid
 
-    private List<ToolbeltSlotUI> slotUIs = new();
+    private List<ItemSlotUI> slotUIs = new();
 
     void Start()
     {
-        if (toolbelt == null)
-            toolbelt = FindFirstObjectByType<Toolbelt>();
+        // No more automatic toolbelt = FindFirstObjectByType<Toolbelt>();
+        if (toolbelt != null)
+        {
+            Bind(toolbelt); // still useful for manual testing
+        }
+    }
+    public void Bind(Toolbelt tb)
+    {
+        if (toolbelt != null)
+        {
+            // Unhook old listeners
+            toolbelt.OnSlotChanged -= UpdateHighlight;
+            toolbelt.OnToolbeltResize -= Refresh;
+            toolbelt.OnContentsChanged -= Refresh;
+        }
 
-        // Rebuild the UI slots based on toolbelt data
-        RebuildSlots();
+        toolbelt = tb;
 
         toolbelt.OnSlotChanged += UpdateHighlight;
         toolbelt.OnToolbeltResize += Refresh;
         toolbelt.OnContentsChanged += Refresh;
+
+        RebuildSlots();
     }
-
-    void RebuildSlots()
+    private void RebuildSlots()
     {
-        // Clean existing children
+        if (DragManager.Instance != null && DragManager.Instance.IsDragging)
+            return;
+        // Clear old slots
         foreach (Transform child in slotContainer)
-        {
             Destroy(child.gameObject);
-        }
-
         slotUIs.Clear();
 
         for (int i = 0; i < toolbelt.GetSlotCount(); i++)
         {
             GameObject slotGO = Instantiate(slotPrefab, slotContainer);
-            ToolbeltSlotUI slotUI = slotGO.GetComponent<ToolbeltSlotUI>();
+            var slotUI = slotGO.GetComponent<ItemSlotUI>();
 
-            var item = toolbelt.slots[i].stack.item;
-            slotUI.SetIcon(item?.icon);
-            slotUI.SetActive(i == toolbelt.selectedSlotIndex);
+            var index = i; // Capture for lambda
+            var binding = new ItemSlotBinding(
+                () => toolbelt.GetStack(index),
+                (newStack) => toolbelt.SetStack(index, newStack)
+            );
+
+            slotUI.Index = index;
+            slotUI.slotType = "toolbelt";
+            slotUI.Set(binding);
+
+            slotUI.OnClicked += (clickedSlot) =>
+            {
+                toolbelt.EquipSlot(clickedSlot.Index);
+            };
+
+            // Highlight if currently selected
+            slotUI.highlight.enabled = (index == toolbelt.selectedSlotIndex);
 
             slotUIs.Add(slotUI);
         }
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(slotContainer);
     }
 
-    void UpdateHighlight(int selectedIndex, ItemData item)
+    private void UpdateHighlight(int selectedIndex, ItemData item)
     {
         for (int i = 0; i < slotUIs.Count; i++)
         {
-            slotUIs[i].SetActive(i == selectedIndex);
+            slotUIs[i].highlight.enabled = (i == selectedIndex);
         }
     }
 
-    // Call this when the player unlocks more slots
     public void Refresh()
     {
         RebuildSlots();

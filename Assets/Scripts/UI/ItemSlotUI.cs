@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine.EventSystems;
 using System;
 
-public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IDropHandler
 {
     [Header("UI References")]
     public Image background;
@@ -25,14 +25,62 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     public event System.Action<ItemSlotUI> OnHovered;
     public event System.Action<ItemSlotUI> OnUnhovered;
 
-    public int index { get; set; }
+    public int Index { get; set; }
     public void Set(ItemSlotBinding newBinding)
     {
         binding = newBinding;
-        UpdateUI();
+        Redraw();
     }
 
-    public void UpdateUI()
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        var stack = binding.GetStack();
+        if (stack == null || stack.IsEmpty())
+            return;
+
+        DragManager.Instance.BeginDrag(this, stack);
+        binding.SetStack(ItemStack.Empty());
+        DragManager.Instance.UpdateDragPosition(eventData.position);
+        Debug.Log($"[Toolbelt Slot] Begin drag at: {eventData.position}");
+    }
+    public void OnDrag(PointerEventData eventData)
+    {
+        Debug.Log($"Dragging: {eventData.position}");
+        DragManager.Instance.UpdateDragPosition(eventData.position);
+    }
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        if (!DragManager.Instance.IsDragging)
+            return;
+
+        if (eventData.pointerEnter != null)
+        {
+            Debug.Log("Dropped on: " + eventData.pointerEnter.name);
+        }
+        else
+        {
+            Debug.Log("Dropped on empty space");
+        }
+
+
+        if (!eventData.pointerEnter || !eventData.pointerEnter.GetComponentInParent<ItemSlotUI>())
+        {
+            // Didn't drop on a valid slot ? return item to original
+            binding.SetStack(DragManager.Instance.EndDrag());
+            return;
+        }
+
+        var targetSlot = eventData.pointerEnter?.GetComponentInParent<ItemSlotUI>();
+
+        // Let DragManager resolve drop logic
+        DragManager.Instance.HandleDrop(this, targetSlot);
+    }
+    public void OnDrop(PointerEventData eventData)
+    {
+        // Required to receive drop, even if logic is in EndDrag
+    }
+
+    public void Redraw()
     {
         var stack = binding?.GetStack() ?? ItemStack.Empty();
         icon.enabled = stack.item;

@@ -5,7 +5,7 @@ public class StatHandler : MonoBehaviour
 {
 
     [SerializedDictionary("Stat", "Value")]
-    public SerializedDictionary<Stat, int> stats = new SerializedDictionary<Stat, int>();
+    public SerializedDictionary<Stat, float> stats = new SerializedDictionary<Stat, float>();
 
     private PlayerEquipment equipment;
 
@@ -25,15 +25,15 @@ public class StatHandler : MonoBehaviour
         
     }
 
-    public int GetEffectiveStat(Stat stat)
+    public float GetEffectiveStat(Stat stat)
     {
-        int baseStat = stats[stat];
+        var baseStat = stats[stat];
 
         if(equipment != null)
         {
             foreach (var equip in equipment.equippedArmor)
             {
-                baseStat += equip.statBonuses[stat];
+                baseStat += equip.stats[stat];
             }
         }
 

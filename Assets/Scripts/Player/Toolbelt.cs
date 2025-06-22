@@ -1,45 +1,34 @@
 using UnityEngine;
 using System;
-using NUnit.Framework;
 using System.Collections.Generic;
 
 public class Toolbelt : MonoBehaviour
 {
     [Header("Toolbelt Settings")]
-    public List<InventorySlot> slots;
+    [SerializeField] private List<InventorySlot> slots = new();
+    [SerializeField] private int slotCount = 5;
 
     public int selectedSlotIndex { get; private set; } = -1;
-    public int slotCount = 0;
 
-    private PlayerEquipment equipment;
 
-    public event Action<int, ItemData> OnSlotChanged; // UI hook
-    public event Action OnToolbeltResize; 
+    public event Action<int, ItemData> OnSlotChanged;
+    public event Action OnToolbeltResize;
     public event Action OnContentsChanged;
 
-    void Start()
+    private void Start()
     {
-        equipment = GetComponent<PlayerEquipment>();
 
+        InitializeSlots(slotCount);
 
-        // Set default size if empty
-        if (slots == null || slots.Count == 0)
-        {
-            slots = new List<InventorySlot>();
-            for (int i = 0; i < slotCount; i++)
-                slots.Add(new InventorySlot(new ItemStack(null, 0)));
-        }
-
-        // Equip the first item by default if any
         if (slots.Count > 0)
             EquipSlot(0);
 
         OnToolbeltResize?.Invoke();
     }
 
-    void Update()
+    private void Update()
     {
-        for (int i = 0; i < slots.Count && i < 9; i++) // Max 9 keys (1–9)
+        for (int i = 0; i < slots.Count && i < 9; i++) // 1-9 keypress
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
             {
@@ -49,40 +38,42 @@ public class Toolbelt : MonoBehaviour
         }
     }
 
+    private void InitializeSlots(int size)
+    {
+        slots ??= new List<InventorySlot>();
+
+        while (slots.Count < size)
+            slots.Add(new InventorySlot(new ItemStack(null, 0)));
+
+        slotCount = slots.Count;
+    }
+
     public void EquipSlot(int index)
     {
         if (index < 0 || index >= slots.Count) return;
 
-        ItemData item = slots[index].stack.item;
         selectedSlotIndex = index;
+        ItemData item = slots[index].stack.item;
 
-        if (item != null)
-        {
-            Debug.Log($"Equipped slot {index + 1}: {item.itemName}");
-        }
-        else
-        {
-            Debug.Log($"Slot {index + 1} is empty.");
-        }
+        Debug.Log(item != null
+            ? $"Equipped slot {index + 1}: {item.itemName}"
+            : $"Slot {index + 1} is empty.");
 
         OnSlotChanged?.Invoke(index, item);
     }
 
-    public void updateToolbeltSize(int newSize)
+    public void UpdateToolbeltSize(int newSize)
     {
-        if(newSize > slotCount)
+        if (newSize > slotCount)
         {
-            for(int i = slotCount; i < newSize; i++)
-            {
+            for (int i = slotCount; i < newSize; i++)
                 slots.Add(new InventorySlot(new ItemStack(null, 0)));
-            }
         }
-        else if(newSize < slotCount) {
-            for (int i = slotCount - 1; i < newSize; i++)
-            {
-                slots.RemoveAt(slots.Count - 1);
-            }
+        else if (newSize < slotCount)
+        {
+            slots.RemoveRange(newSize, slotCount - newSize);
         }
+
         slotCount = slots.Count;
         OnToolbeltResize?.Invoke();
     }
@@ -90,18 +81,33 @@ public class Toolbelt : MonoBehaviour
     public void SetStack(int index, ItemStack stack)
     {
         if (index < 0 || index >= slots.Count) return;
+
         slots[index].stack = stack;
         OnContentsChanged?.Invoke();
+
+        if (index == selectedSlotIndex)
+            OnSlotChanged?.Invoke(index, stack.item);
     }
 
     public ItemStack GetStack(int index)
     {
-        return (index >= 0 && index < slots.Count) ? slots[index].stack : null;
+        return (index >= 0 && index < slots.Count)
+            ? slots[index].stack
+            : ItemStack.Empty();
     }
 
-    public ItemData getEqippedItem()
+    public InventorySlot GetSlot(int index)
     {
-        return slots[selectedSlotIndex].stack.item;
+        return (index >= 0 && index < slots.Count)
+            ? slots[index]
+            : null;
     }
     public int GetSlotCount() => slots.Count;
+
+    public ItemData GetEquippedItem()
+    {
+        return (selectedSlotIndex >= 0 && selectedSlotIndex < slots.Count)
+            ? slots[selectedSlotIndex].stack.item
+            : null;
+    }
 }

@@ -7,6 +7,7 @@ public class Inventory : MonoBehaviour
 {
     public int maxSlots = 20;
     public List<InventorySlot> slots = new();
+    public List<ItemData> acceptedItems = new();
 
     public event Action UpdateInventory;
 
@@ -24,12 +25,19 @@ public class Inventory : MonoBehaviour
         if (stack == null || stack.item == null)
             return true;
 
+        if (!Accepts(stack.item))
+        {
+            Debug.Log($"Inventory does not accept {stack.item.name}.");
+            return false;
+        }
+
         if (stack.item.isStackable)
         {
             var existingSlot = slots.Find(s => s.Matches(stack.item));
             if (existingSlot != null)
             {
                 existingSlot.stack.quantity += stack.quantity;
+                Debug.Log("[Inventory] Added item, updating inventory.");
                 UpdateInventory?.Invoke();
                 return true;
             }
@@ -40,6 +48,7 @@ public class Inventory : MonoBehaviour
             if (!slot.stack.item)
             {
                 slot.stack = stack.Clone();
+                Debug.Log("[Inventory] Added item, updating inventory.");
                 UpdateInventory?.Invoke();
                 return true;
             }
@@ -75,6 +84,8 @@ public class Inventory : MonoBehaviour
         foreach (var (index, amount) in removalPlan)
         {
             slots[index].stack.ReduceBy(amount);
+            Debug.Log("[Inventory] Added item, updating inventory.");
+            UpdateInventory?.Invoke();
         }
 
         return true;
@@ -96,4 +107,8 @@ public class Inventory : MonoBehaviour
         return Count(stack.item) >= stack.quantity;
     }
 
+    public bool Accepts(ItemData item)
+    {
+        return acceptedItems.Count <= 0 || !acceptedItems.Contains(item);
+    }
 }

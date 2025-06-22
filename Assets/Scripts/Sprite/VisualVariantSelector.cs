@@ -1,17 +1,15 @@
 using UnityEngine;
+using Unity.Netcode;
 
-public class VisualVariantSelector : MonoBehaviour
+public class VisualVariantSelector : NetworkBehaviour
 {
     [SerializeField] private VisualVariantSet variantSet;
-
-    // Drag the child transform manually, or find it automatically
     [SerializeField] private SpriteRenderer targetRenderer;
 
-    private void Awake()
-    {
-        if (variantSet == null || variantSet.variants.Length == 0)
-            return;
+    private NetworkVariable<int> variantIndex = new NetworkVariable<int>(0);
 
+    public override void OnNetworkSpawn()
+    {
         // Auto-find SpriteRenderer in children if not manually assigned
         if (targetRenderer == null)
             targetRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -22,7 +20,24 @@ public class VisualVariantSelector : MonoBehaviour
             return;
         }
 
-        int index = Random.Range(0, variantSet.variants.Length);
-        targetRenderer.sprite = variantSet.variants[index];
+        if (IsServer)
+        {
+            if (variantSet != null && variantSet.variants.Length > 0)
+                variantIndex.Value = Random.Range(0, variantSet.variants.Length);
+        }
+
+        ApplyVariant(variantIndex.Value);
+        variantIndex.OnValueChanged += (_, newValue) => ApplyVariant(newValue);
+    }
+
+    private void ApplyVariant(int index)
+    {
+        if (variantSet == null || variantSet.variants.Length == 0 || targetRenderer == null)
+            return;
+
+        if (index >= 0 && index < variantSet.variants.Length)
+        {
+            targetRenderer.sprite = variantSet.variants[index];
+        }
     }
 }

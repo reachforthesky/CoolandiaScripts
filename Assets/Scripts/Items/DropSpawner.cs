@@ -1,10 +1,12 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class DropSpawner : MonoBehaviour
+public class DropSpawner : NetworkBehaviour
 {
     public static DropSpawner Instance;
 
     public GameObject dropPrefab; // Assign in inspector
+    private int dropPrefabId = -1;
 
     private void Awake()
     {
@@ -14,12 +16,33 @@ public class DropSpawner : MonoBehaviour
             Instance = this;
     }
 
+    private void Start()
+    {
+        // Find index of dropPrefab in PEM's list
+        if (PersistentEntityManager.Instance != null && dropPrefab != null)
+        {
+            var prefabs = PersistentEntityManager.Instance.entityPrefabs;
+            dropPrefabId = System.Array.IndexOf(prefabs, dropPrefab);
+
+            if (dropPrefabId == -1)
+                Debug.LogError("[DropSpawner] Drop prefab not found in PEM entityPrefabs list!");
+        }
+    }
+
     public void SpawnDrop(ItemData item, Vector3 position)
     {
-        if (dropPrefab == null || item == null) return;
 
-        GameObject drop = Instantiate(dropPrefab, position + Vector3.up * 0.5f, Quaternion.identity);
-        var dropComponent = drop.GetComponent<ItemDrop>();
-        dropComponent?.Initialize(item);
+        if (!IsServer) return;
+        if (dropPrefabId == -1 || item == null) return;
+
+        var data = new PersistentEntityData
+        {
+            prefabId = dropPrefabId,
+            position = position + Vector3.up * 0.5f,
+            rotation = Quaternion.identity,
+            isDestroyed = false
+        };
+
+        PersistentEntityManager.Instance.RegisterEntity(data);
     }
 }

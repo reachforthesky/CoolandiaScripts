@@ -1,4 +1,9 @@
 // ItemData.cs
+using AYellowpaper.SerializedCollections;
+using NUnit.Framework;
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 [CreateAssetMenu(menuName = "Inventory/Item")]
@@ -7,8 +12,11 @@ public class ItemData : ScriptableObject
     public string itemName;
     public Sprite icon;
     public bool isStackable = true;
-    public ToolType toolType;
     public int damage = 1;
-}
+    [SerializedDictionary("Stat", "Value")]
+    public SerializedDictionary<Stat, float> stats= new SerializedDictionary<Stat, float>();
+    public List<Tag> tags = new List<Tag>();
 
-public enum ToolType { None, Axe, Pick }
+    [Tooltip("Unique ID used for network syncing")]
+    public int itemId;
+}

@@ -1,7 +1,9 @@
-using UnityEngine;
+using System;
 using System.Collections.Generic;
+using Unity.Netcode;
+using UnityEngine;
 
-public class EntitySpawner : MonoBehaviour
+public class EntitySpawner : NetworkBehaviour
 {
     [Header("Entity Settings")]
     public GameObject entityPrefab; // Billboard sprite prefab
@@ -18,6 +20,9 @@ public class EntitySpawner : MonoBehaviour
     [ButtonInvoke("GenerateTerrain", displayIn: ButtonInvoke.DisplayIn.PlayAndEditModes)] public bool generateTerrain;
     public void SpawnEntities(TileMapData mapData)
     {
+        if (!IsServer)
+            return;
+
         ClearExistingEntities();
         rng = new System.Random(seed);
         TileMapData map = mapData;
@@ -50,7 +55,16 @@ public class EntitySpawner : MonoBehaviour
                         z * tileSize + tileSize / 2f + randOffsetZ
                     );
 
-                    GameObject entity = Instantiate(entityPrefab, pos, Quaternion.identity, this.transform);
+                    int prefabId = Array.IndexOf(PersistentEntityManager.Instance.entityPrefabs, entityPrefab);
+                    PersistentEntityData data = new PersistentEntityData
+                    {
+                        prefabId = prefabId, // Use a matching index from PersistentEntityManager.entityPrefabs
+                        position = pos,
+                        rotation = Quaternion.identity,
+                        isDestroyed = false
+                    };
+
+                    PersistentEntityManager.Instance.RegisterEntity(data);
                 }
             }
         }

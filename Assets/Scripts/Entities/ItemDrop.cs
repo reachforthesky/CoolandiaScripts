@@ -1,8 +1,7 @@
-using NUnit.Framework.Interfaces;
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.UI;
 
-public class ItemDrop : MonoBehaviour
+public class ItemDrop : NetworkBehaviour
 {
     [SerializeField] private float attractionRadius = 3f;
     [SerializeField] private float attractionSpeed = 5f;
@@ -11,49 +10,96 @@ public class ItemDrop : MonoBehaviour
     public SpriteRenderer iconRenderer;
     public float lifetime = 30f;
     public float targetSize = 1f;
-    public float verticleOffest = .05f;
+    public float verticleOffset = .05f;
     public float collectDelay = 0.3f;
 
     private Rigidbody rb;
     private Transform playerTransform;
     private float spawnTime;
-    private float delayBeforeAttraction = 0.3f;
+    private bool pickedUp = false;
+
     private ItemData itemData;
+
+    public NetworkVariable<int> itemId = new(0, NetworkVariableReadPermission.Everyone);
+
+    public override void OnNetworkSpawn()
+    {
+        itemId.OnValueChanged += OnItemIdChanged;
+
+        if (IsServer && itemData != null)
+        {
+            itemId.Value = itemData.itemId;
+        }
+
+        if (IsClient)
+        {
+            TryResolveItem(itemId.Value);
+        }
+    }
+
+    private void OnItemIdChanged(int previous, int current)
+    {
+        TryResolveItem(current);
+    }
+
+    private void TryResolveItem(int id)
+    {
+        itemData = ItemDatabase.Instance?.Get(id);
+        if (itemData != null)
+        {
+            UpdateVisuals();
+        }
+    }
+
+    private void UpdateVisuals()
+    {
+        if (iconRenderer != null && itemData.icon != null)
+        {
+            iconRenderer.sprite = itemData.icon;
+
+            float spriteHeight = itemData.icon.bounds.size.y;
+            float scale = targetSize / spriteHeight;
+            iconRenderer.transform.localScale = Vector3.one * scale;
+            iconRenderer.transform.localPosition = new Vector3(0f, verticleOffset, 0f);
+        }
+    }
 
     private void Start()
     {
         rb = GetComponent<Rigidbody>();
         spawnTime = Time.time;
 
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player != null)
+        if (!IsServer)
         {
-            playerTransform = player.transform;
+            rb.isKinematic = true;
         }
-        Destroy(gameObject, lifetime);
+
+        // Find local player for magnetic attraction
+        foreach (var player in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
+        {
+            if (player.IsOwner)
+            {
+                playerTransform = player.transform;
+                break;
+            }
+        }
+
+        if (IsServer)
+        {
+            Destroy(gameObject, lifetime);
+        }
     }
 
     public void Initialize(ItemData item)
     {
         itemData = item;
-        if (iconRenderer != null && item != null)
+        if (IsServer)
         {
-            float targetHeight = targetSize; // world units tall
-            float spriteHeight = item.icon.bounds.size.y;
-            float scale = targetHeight / spriteHeight;
-
-            iconRenderer.sprite = item.icon;
-
-            // Normalize size
-            if (item.icon != null)
-            {
-                iconRenderer.transform.localScale = Vector3.one * scale;
-                iconRenderer.transform.localPosition = new Vector3(0f, verticleOffest, 0f);
-            }
+            itemId.Value = item.itemId;
         }
 
-        // Add random force
-        var rb = GetComponent<Rigidbody>();
+        UpdateVisuals();
+
         if (rb != null)
         {
             Vector3 randomDir = new Vector3(
@@ -66,10 +112,10 @@ public class ItemDrop : MonoBehaviour
         }
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
-        if (playerTransform == null || rb == null) return;
-        if (Time.time - spawnTime < delayBeforeAttraction) return;
+        if (playerTransform == null || rb == null || Time.time - spawnTime < collectDelay)
+            return;
 
         Vector3 toPlayer = playerTransform.position - transform.position;
         float distance = toPlayer.magnitude;
@@ -78,10 +124,8 @@ public class ItemDrop : MonoBehaviour
         {
             Vector3 forceDir = toPlayer.normalized;
             float forceMagnitude = Mathf.Lerp(0f, attractionSpeed, 1f - (distance / attractionRadius));
-
             Vector3 force = forceDir * forceMagnitude;
 
-            // Clamp total speed
             if (rb.linearVelocity.magnitude < maxSpeed)
             {
                 rb.AddForce(force, ForceMode.Acceleration);
@@ -91,13 +135,18 @@ public class ItemDrop : MonoBehaviour
 
     public void TryPickup(GameObject collector)
     {
-        if (Time.time - spawnTime < collectDelay) return;
+        if (!IsServer || pickedUp || itemData == null) return;
 
         var inventory = collector.GetComponent<Inventory>();
-        if (inventory != null && itemData != null)
+        if (inventory && inventory.AddItem(new ItemStack(itemData)))
         {
-            inventory.AddItem(new ItemStack(itemData));
-            Destroy(gameObject);
+            pickedUp = true;
+            NetworkObject.Despawn(); // Properly sync across clients
         }
+    }
+    public override void OnDestroy()
+    {
+        itemId.OnValueChanged -= OnItemIdChanged;
+        base.OnDestroy();
     }
 }
