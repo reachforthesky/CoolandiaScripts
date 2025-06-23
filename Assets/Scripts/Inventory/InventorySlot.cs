@@ -8,8 +8,8 @@ public class InventorySlot
         this.stack = stack;
     }
 
-    public bool Matches(ItemData other)
+    public bool Matches(int otherId)
     {
-        return stack.item == other;
+        return stack.itemId == otherId;
     }
 }

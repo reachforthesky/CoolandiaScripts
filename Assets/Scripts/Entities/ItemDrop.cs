@@ -138,8 +138,9 @@ public class ItemDrop : NetworkBehaviour
         if (!IsServer || pickedUp || itemData == null) return;
 
         var inventory = collector.GetComponent<Inventory>();
-        if (inventory && inventory.AddItem(new ItemStack(itemData)))
+        if (inventory)
         {
+            inventory.AddItem(new ItemStack(itemData.itemId));
             pickedUp = true;
             NetworkObject.Despawn(); // Properly sync across clients
         }

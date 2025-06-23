@@ -9,6 +9,8 @@ using static UnityEditor.Searcher.SearcherWindow.Alignment;
 using Unity.VisualScripting;
 using UnityEditor.PackageManager;
 using Unity.Netcode;
+using System.Collections;
+
 
 
 
@@ -120,15 +122,22 @@ public class TerrainGenerator : NetworkBehaviour
         GetComponent<MeshFilter>().mesh = mesh;
         GetComponent<MeshCollider>().sharedMesh = mesh;
 
-        //TreeSpawner.SpawnEntities(mapData);
-        //RockSpawner.SpawnEntities(mapData);
+        StartCoroutine(WaitForPEMThenSpawn());
+    }
+    private IEnumerator WaitForPEMThenSpawn()
+    {
+        // Wait until PEM is spawned
+        while (PersistentEntityManager.Instance == null || !PersistentEntityManager.Instance.IsSpawned)
+        {
+            yield return null;
+        }
 
-        foreach(var spawner in entitySpawners)
+        // Now safe to spawn scenery
+        foreach (var spawner in entitySpawners)
         {
             spawner.SpawnEntities(mapData);
         }
     }
-
     Color[] ColorVertices(Color[] colors, int[] colorWriteCounts)
     {
         for (int z = 0; z < mapLength; z++)

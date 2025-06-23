@@ -54,7 +54,8 @@ public class ToolbeltUI : MonoBehaviour
             var index = i; // Capture for lambda
             var binding = new ItemSlotBinding(
                 () => toolbelt.GetStack(index),
-                (newStack) => toolbelt.SetStack(index, newStack)
+                index,
+                toolbelt.toolbeltInventory
             );
 
             slotUI.Index = index;
@@ -75,7 +76,7 @@ public class ToolbeltUI : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(slotContainer);
     }
 
-    private void UpdateHighlight(int selectedIndex, ItemData item)
+    private void UpdateHighlight(int selectedIndex, int itemId)
     {
         for (int i = 0; i < slotUIs.Count; i++)
         {

@@ -6,7 +6,7 @@ public class VisualVariantSelector : NetworkBehaviour
     [SerializeField] private VisualVariantSet variantSet;
     [SerializeField] private SpriteRenderer targetRenderer;
 
-    private NetworkVariable<int> variantIndex = new NetworkVariable<int>(0);
+    private int variantIndex = 0;
 
     public override void OnNetworkSpawn()
     {
@@ -23,11 +23,10 @@ public class VisualVariantSelector : NetworkBehaviour
         if (IsServer)
         {
             if (variantSet != null && variantSet.variants.Length > 0)
-                variantIndex.Value = Random.Range(0, variantSet.variants.Length);
+                variantIndex = Random.Range(0, variantSet.variants.Length);
         }
 
-        ApplyVariant(variantIndex.Value);
-        variantIndex.OnValueChanged += (_, newValue) => ApplyVariant(newValue);
+        ApplyVariant(variantIndex);
     }
 
     private void ApplyVariant(int index)

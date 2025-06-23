@@ -1,114 +1,169 @@
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
-using static UnityEditor.Progress;
 
-public class Inventory : MonoBehaviour
+public class Inventory : NetworkBehaviour
 {
     public int maxSlots = 20;
-    public List<InventorySlot> slots = new();
+    public NetworkList<ItemStack> syncedSlots = new();
     public List<ItemData> acceptedItems = new();
 
     public event Action UpdateInventory;
-
-    public void Start()
+    public List<InventorySlot> slots; // wrapper for UI binding
+    public override void OnNetworkSpawn()
     {
-        for (int i = slots.Count; i < maxSlots; i++)
+        // Initialize network list
+        if (syncedSlots == null)
+            syncedSlots = new NetworkList<ItemStack>();
+
+        // Host initializes slots
+        if (IsServer && syncedSlots.Count == 0)
         {
-            var slot = new InventorySlot(new ItemStack(null, 0));
-            slots.Add(slot);
+            for (int i = 0; i < maxSlots; i++)
+                if (i < slots.Count && !slots[i].stack.IsEmpty())
+                    syncedSlots.Add(slots[i].stack);
+                else
+                    syncedSlots.Add(ItemStack.Empty());
+        }
+
+        // Always subscribe to changes
+        syncedSlots.OnListChanged += OnSyncedSlotsChanged;
+        RebuildSlotsFromNetworkList();
+    }
+
+    private void OnDestroy()
+    {
+        if (syncedSlots != null)
+            syncedSlots.OnListChanged -= OnSyncedSlotsChanged;
+    }
+
+    private void OnSyncedSlotsChanged(NetworkListEvent<ItemStack> change)
+    {
+        RebuildSlotsFromNetworkList();
+        UpdateInventory?.Invoke();
+    }
+
+    private void RebuildSlotsFromNetworkList()
+    {
+        // Rebuild non-synced wrapper list
+        slots = new List<InventorySlot>(maxSlots);
+        foreach (var stack in syncedSlots)
+        {
+            slots.Add(new InventorySlot(stack));
         }
     }
 
-    public bool AddItem(ItemStack stack)
+    public void SetSlot(int index, ItemStack stack)
     {
-        if (stack == null || stack.item == null)
-            return true;
+        if (!IsServer) return;
+        if (index < 0 || index >= syncedSlots.Count) return;
+        syncedSlots[index] = stack.Clone();
+    }
 
-        if (!Accepts(stack.item))
+    public void AddItem(ItemStack stack)
+    {
+        if (!IsServer) return;
+        if (stack.itemId == 0) return;
+
+        var item = ItemDatabase.Instance.Get(stack.itemId);
+        if (!Accepts(stack.itemId))
         {
-            Debug.Log($"Inventory does not accept {stack.item.name}.");
-            return false;
+            Debug.LogWarning($"[Inventory] Item {item.name} not accepted.");
+            return;
         }
 
-        if (stack.item.isStackable)
+        if (item.isStackable)
         {
-            var existingSlot = slots.Find(s => s.Matches(stack.item));
-            if (existingSlot != null)
+            for (int i = 0; i < syncedSlots.Count; i++)
             {
-                existingSlot.stack.quantity += stack.quantity;
-                Debug.Log("[Inventory] Added item, updating inventory.");
-                UpdateInventory?.Invoke();
-                return true;
+                var s = syncedSlots[i];
+                if (s.itemId == stack.itemId)
+                {
+                    s.quantity += stack.quantity;
+                    syncedSlots[i] = s;
+                    return;
+                }
             }
         }
 
-        foreach (var slot in slots)
+        for (int i = 0; i < syncedSlots.Count; i++)
         {
-            if (!slot.stack.item)
+            if (syncedSlots[i].itemId == 0)
             {
-                slot.stack = stack.Clone();
-                Debug.Log("[Inventory] Added item, updating inventory.");
-                UpdateInventory?.Invoke();
-                return true;
+                syncedSlots[i] = stack.Clone();
+                return;
             }
         }
 
-        Debug.Log("Inventory full!");
-        return false;
+        Debug.LogWarning("[Inventory] Inventory full!");
     }
 
     public bool RemoveStack(ItemStack stack)
     {
-        int toRemove = stack.quantity;
-        List<(int index, int amount)> removalPlan = new();
+        if (!IsServer) return false;
 
-        for (int i = 0; i < slots.Count && toRemove > 0; i++)
+        int toRemove = stack.quantity;
+        var removalPlan = new List<(int index, int amount)>();
+
+        for (int i = 0; i < syncedSlots.Count && toRemove > 0; i++)
         {
-            var currentStack = slots[i].stack;
-            if (currentStack.item == stack.item && currentStack.quantity > 0)
+            var current = syncedSlots[i];
+            if (current.itemId == stack.itemId && current.quantity > 0)
             {
-                int removable = Mathf.Min(currentStack.quantity, toRemove);
-                removalPlan.Add((i, removable));
-                toRemove -= removable;
+                int amount = Mathf.Min(current.quantity, toRemove);
+                removalPlan.Add((i, amount));
+                toRemove -= amount;
             }
         }
 
         if (toRemove > 0)
-        {
-            // Not enough items to remove
             return false;
-        }
 
-        // Apply removals
         foreach (var (index, amount) in removalPlan)
         {
-            slots[index].stack.ReduceBy(amount);
-            Debug.Log("[Inventory] Added item, updating inventory.");
-            UpdateInventory?.Invoke();
+            var current = syncedSlots[index];
+            current.ReduceBy(amount);
+            syncedSlots[index] = current;
         }
 
         return true;
     }
 
-    public int Count(ItemData item)
+    public int Count(int itemId)
     {
-        int accumulator = 0;
-        foreach (var slot in slots)
-        {
-            if (slot.stack.item == item)
-                accumulator += slot.stack.quantity;
-        }
-        return accumulator;
+        int total = 0;
+        foreach (var stack in syncedSlots)
+            if (stack.itemId == itemId)
+                total += stack.quantity;
+        return total;
     }
 
-    public bool Has(ItemStack stack)
+    public bool Has(ItemStack stack) => Count(stack.itemId) >= stack.quantity;
+
+    public bool Accepts(int itemId)
     {
-        return Count(stack.item) >= stack.quantity;
+        var item = ItemDatabase.Instance.Get(itemId);
+        return acceptedItems.Count == 0 || acceptedItems.Contains(item);
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestSetSlotServerRpc(int index, int itemId, int quantity)
+    {
+        if (index < 0 || index >= syncedSlots.Count) return;
+        syncedSlots[index] = new ItemStack(itemId, quantity);
     }
 
-    public bool Accepts(ItemData item)
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestAddItemServerRpc(int itemId, int quantity)
     {
-        return acceptedItems.Count <= 0 || !acceptedItems.Contains(item);
+        var item = new ItemStack(itemId, quantity);
+        AddItem(item);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestRemoveItemServerRpc(int itemId, int quantity)
+    {
+        var item = new ItemStack(itemId, quantity);
+        RemoveStack(item);
     }
 }

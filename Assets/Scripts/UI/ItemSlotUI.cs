@@ -34,14 +34,12 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        var stack = binding.GetStack();
-        if (stack == null || stack.IsEmpty())
-            return;
 
-        DragManager.Instance.BeginDrag(this, stack);
-        binding.SetStack(ItemStack.Empty());
+        var stack = binding.GetStack();
+        if (stack.IsEmpty()) return;
+
+        DragManager.Instance.BeginDrag(this, stack); // <-- Use RPC to clear it
         DragManager.Instance.UpdateDragPosition(eventData.position);
-        Debug.Log($"[Toolbelt Slot] Begin drag at: {eventData.position}");
     }
     public void OnDrag(PointerEventData eventData)
     {
@@ -66,12 +64,13 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
         if (!eventData.pointerEnter || !eventData.pointerEnter.GetComponentInParent<ItemSlotUI>())
         {
             // Didn't drop on a valid slot ? return item to original
-            binding.SetStack(DragManager.Instance.EndDrag());
+            binding.RequestSet(DragManager.Instance.EndDrag());
             return;
         }
 
         var targetSlot = eventData.pointerEnter?.GetComponentInParent<ItemSlotUI>();
 
+        binding.RequestSet(ItemStack.Empty());
         // Let DragManager resolve drop logic
         DragManager.Instance.HandleDrop(this, targetSlot);
     }
@@ -83,16 +82,18 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     public void Redraw()
     {
         var stack = binding?.GetStack() ?? ItemStack.Empty();
-        icon.enabled = stack.item;
-        icon.sprite = stack.item?.icon;
+        var stackItem = ItemDatabase.Instance.Get(stack.itemId);
+        icon.enabled = stackItem;
+        if(stackItem)
+            icon.sprite = stackItem.icon;
         stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
-        SetPlaceholder(stack.item); 
+        SetPlaceholder(stackItem); 
     }
     public void SetStack(ItemStack stack)
     {
         currentItem = stack;
 
-        if (stack == null || stack.item == null)
+        if (stack.itemId == 0)
         {
             icon.enabled = false;
             stackText.text = "";
@@ -100,7 +101,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
         else
         {
             icon.enabled = true;
-            icon.sprite = stack.item.icon;
+            icon.sprite = ItemDatabase.Instance.Get(stack.itemId).icon;
             stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         }
     }
@@ -122,11 +123,21 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
 public class ItemSlotBinding
 {
     public Func<ItemStack> GetStack;
-    public Action<ItemStack> SetStack;
+    public int Index;
+    public Inventory OwningInventory;
 
-    public ItemSlotBinding(Func<ItemStack> getter, Action<ItemStack> setter)
+    public ItemSlotBinding(Func<ItemStack> getter, int index, Inventory owner)
     {
         GetStack = getter;
-        SetStack = setter;
+        Index = index;
+        OwningInventory = owner;
+    }
+
+    public void RequestSet(ItemStack stack)
+    {
+        if (OwningInventory.IsServer)
+            OwningInventory.SetSlot(Index, stack);
+        else
+            OwningInventory.RequestSetSlotServerRpc(Index, stack.itemId, stack.quantity);
     }
 }

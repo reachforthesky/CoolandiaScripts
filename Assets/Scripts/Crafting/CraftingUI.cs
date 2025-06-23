@@ -5,10 +5,11 @@ using UnityEngine.UI;
 
 public class CraftingUI : MonoBehaviour
 {
-    [SerializeField] private CraftingSystem craftingSystem;
     [SerializeField] private CraftingRecipe[] availableRecipes;
     [SerializeField] private GameObject recipeButtonPrefab;
     [SerializeField] private Transform recipeListParent;
+    
+    private CraftingSystem craftingSystem;
 
     void Start()
     {
@@ -22,5 +23,10 @@ public class CraftingUI : MonoBehaviour
 
             btn.onClick.AddListener(() => craftingSystem.Craft(r));
         }
+    }
+
+    public void SetCraftingSystem(CraftingSystem system)
+    {
+        craftingSystem = system;
     }
 }

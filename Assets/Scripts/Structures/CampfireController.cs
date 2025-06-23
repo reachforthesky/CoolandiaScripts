@@ -1,7 +1,11 @@
+using System;
+using Unity.Netcode;
+using UnityEditor.PackageManager;
 using UnityEngine;
+using UnityEngine.InputSystem.XR;
 
 [RequireComponent(typeof(SpriteRenderer))]
-public class CampfireController : MonoBehaviour, IInteractable
+public class CampfireController : NetworkBehaviour, IInteractable
 {
     public Sprite inactiveSprite;
     public Sprite activeSprite;
@@ -14,24 +18,25 @@ public class CampfireController : MonoBehaviour, IInteractable
 
     private SpriteRenderer spriteRenderer;
 
-    public bool active;
+    ulong IInteractable.NetworkObjectId
+    {
+        get => base.NetworkObjectId;
+        set { /* NetworkObjectId is readonly in NetworkBehaviour, so setter is intentionally left empty */ }
+    }
+
+    public NetworkVariable<bool> active = new NetworkVariable<bool>();
 
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
-
     }
 
     private void Update()
     {
-        if (active)
+        if (active.Value)
         {
             fuelConsumer.enabled = true;
-            if (fuelConsumer.IsBurning)
-                spriteRenderer.sprite = activeSprite;
-            else
-                spriteRenderer.sprite = inactiveSprite;
-
+            spriteRenderer.sprite = fuelConsumer.IsBurning ? activeSprite : inactiveSprite;
             processor.enabled = fuelConsumer.IsBurning;
         }
         else
@@ -43,18 +48,39 @@ public class CampfireController : MonoBehaviour, IInteractable
 
     public void Interact(PlayerController player)
     {
-        var canvas = GameObject.FindWithTag("MainCanvas");
-        if (!canvas)
+        OpenCampfireUIClientRpc(player.OwnerClientId);
+    }
+
+    [ClientRpc]
+    private void OpenCampfireUIClientRpc(ulong ownerClientId)
+    {
+        PlayerController myPlayer = null;
+        var players = FindObjectsByType<PlayerController>(FindObjectsSortMode.None);
+        for (int i = 0; i < players.Length; i++)
         {
-            Debug.LogError("MainCanvas not found!");
-            return;
+            if (players[i].OwnerClientId == ownerClientId)
+            {
+                myPlayer = players[i];
+                break;
+            }
         }
 
-        player.OpenInventory();
-        var ui = UIManager.Instance.OpenInCenter(campfireUIPrefab);
+        if (NetworkManager.Singleton.LocalClientId != ownerClientId)
+            return; 
+
+        myPlayer?.OpenInventory();
+
+        var ui = myPlayer.GetComponentInChildren<UIManager>()?.OpenInCenter(campfireUIPrefab);
+
         ui?.Bind(this);
     }
 
+
+    [ServerRpc(RequireOwnership = false)]
+    public void ActivateCampfireServerRpc()
+    {
+        active.Value = !active.Value;
+    }
     public Inventory GetFuelInventory() => fuelConsumer.fuelInventory;
     public Inventory GetProcessingInventory() => processor.inventory;
 }

@@ -43,6 +43,7 @@ public class DropSpawner : NetworkBehaviour
             isDestroyed = false
         };
 
-        PersistentEntityManager.Instance.RegisterEntity(data);
+        var go = PersistentEntityManager.Instance.RegisterEntity(data);
+        go.GetComponent<ItemDrop>().itemId.Value = item.itemId;
     }
 }

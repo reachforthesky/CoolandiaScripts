@@ -19,7 +19,8 @@ public class BuildingUI : MonoBehaviour, IBindableUI
         string recipeString = "Materials required:";
         foreach (var stack in entity.recipe.requiredItems)
         {
-            recipeString += $" {stack.item.name}x{stack.quantity}";
+            var itemName = ItemDatabase.Instance.Get(stack.itemId);
+            recipeString += $" {itemName}x{stack.quantity}";
         }
         textbox.text = recipeString;
     }

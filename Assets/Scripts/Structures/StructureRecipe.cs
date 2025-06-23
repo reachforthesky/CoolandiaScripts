@@ -12,4 +12,6 @@ public class StructureRecipe : ScriptableObject
     public int toolTierRequired = 0;
     public int buildCost = 1;
     public Tag requiredToolType = Tag.None;
+    [Tooltip("Unique ID used for network syncing")]
+    public int structureId;
 }

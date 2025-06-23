@@ -15,7 +15,8 @@ public class PlayerController : NetworkBehaviour
     public Camera cam;
     public Vector3 spawnPosition = Vector3.zero;
 
-    public GameObject InventoryUIPrefab;
+    [SerializeField] private GameObject uiCanvasPrefab;
+    [SerializeField] private GameObject InventoryUIPrefab; 
     [SerializedDictionary("Stat", "Value")]
     public SerializedDictionary<Stat, int> stats = new SerializedDictionary<Stat, int>{ 
         { Stat.ToolbeltSize, 2 }, 
@@ -29,7 +30,9 @@ public class PlayerController : NetworkBehaviour
     private PlayerEquipment equipment;
     private Toolbelt toolbelt;
     public ItemUseFlash itemUseFlashUI;
-
+    private ToolbeltUI toolbeltUI;
+    private BuildingSystem builder;
+    private CraftingSystem crafter;
     private IPlayerInput playerInput = new DefaultKeyboardInput();
 
 
@@ -49,18 +52,24 @@ public class PlayerController : NetworkBehaviour
             if (cam != null) cam.enabled = false;
             return;
         }
-
-
+        GameObject ui = Instantiate(uiCanvasPrefab, transform);
+        UIManager.LocalInstance = ui.GetComponent<UIManager>();
+        DragManager.Instance = ui.GetComponentInChildren<DragManager>();
+        //DontDestroyOnLoad(ui);
         controller = GetComponent<CharacterController>();
         inventory = GetComponent<Inventory>();
         equipment = GetComponent<PlayerEquipment>();
-        toolbelt = GetComponent<Toolbelt>();
-        toolbelt.UpdateToolbeltSize((int)getStat(Stat.ToolbeltSize));
-        itemUseFlashUI = FindFirstObjectByType<ItemUseFlash>();
+        toolbelt = GetComponentInChildren<Toolbelt>();
+        builder = GetComponent<BuildingSystem>();
+        crafter = GetComponent<CraftingSystem>();
+        itemUseFlashUI = ui.GetComponentInChildren<ItemUseFlash>(true);
 
         equipment.onPlayerEquipNew += updateEquipment;
 
-        var toolbeltUI = FindFirstObjectByType<ToolbeltUI>();
+        toolbeltUI = ui.GetComponentInChildren<ToolbeltUI>(true);
+        var craftingUI = ui.GetComponentInChildren<CraftingUI>(true);
+        craftingUI.SetCraftingSystem(crafter);
+
         if (toolbeltUI != null)
         {
             toolbeltUI.Bind(toolbelt); 
@@ -135,7 +144,8 @@ public class PlayerController : NetworkBehaviour
                 var target = hit.collider.GetComponentInParent<IInteractable>();
                 if (target != null)
                 {
-                    target.Interact(this);
+                    ulong targetId = target.NetworkObjectId;
+                    InteractWithEntityServerRpc(targetId);
                 }
             }
         }
@@ -194,6 +204,15 @@ public class PlayerController : NetworkBehaviour
         if (item != null)
             entity.ItemUsed(item);
     }
+    [ServerRpc]
+    private void InteractWithEntityServerRpc(ulong targetId)
+    {
+        if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(targetId, out var netObj)) return;
+        var entity = netObj.GetComponent<IInteractable>();
+        if (entity == null) return;
+        
+        entity.Interact(this);
+    }
     public void Teleport(Vector3 pos)
     {
         var slide = pos - this.transform.position;
@@ -229,7 +248,8 @@ public class PlayerController : NetworkBehaviour
     }
     public void OpenInventory()
     {
-        var inventory = UIManager.Instance.OpenInCenter(InventoryUIPrefab);
+        if (!IsOwner) return;
+        var inventory = UIManager.LocalInstance.OpenInCenter(InventoryUIPrefab);
         inventory.Bind(this.inventory);
     }
     void updateEquipment()

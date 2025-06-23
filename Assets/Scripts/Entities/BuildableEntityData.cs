@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class BuildableEntityData : EntityData, IInteractable
 {
@@ -11,14 +15,14 @@ public class BuildableEntityData : EntityData, IInteractable
 
     public void Awake()
     {
-        if (inventory.slots.Count > 0)
+        if (inventory.syncedSlots.Count > 0)
         {
-            inventory.slots.Clear();
+            inventory.syncedSlots.Clear();
         }
         inventory.maxSlots = recipe.requiredItems.Count;
         for (int i = 0; i < inventory.maxSlots; i++)
         {
-            inventory.slots.Add(new InventorySlot(ItemStack.Empty()));
+            inventory.syncedSlots.Add(ItemStack.Empty());
         }
     }
     public bool canBuild()
@@ -62,11 +66,12 @@ public class BuildableEntityData : EntityData, IInteractable
         CheckIfBuilt();
     }
 
-    public void Interact(PlayerController player)
+    new public void Interact(PlayerController player)
     {
         player.OpenInventory();
-        var ui = UIManager.Instance.OpenInCenter(buildableUIPrefab);
-        ui.Bind(this);
+        RequestInventoryDataServerRpc(player.OwnerClientId);
+        //var ui = UIManager.LocalInstance.OpenInCenter(buildableUIPrefab);
+        //ui.Bind(this);
     }
 
     private void CheckIfBuilt()
@@ -76,10 +81,60 @@ public class BuildableEntityData : EntityData, IInteractable
             // Spawn structure
             if (finishedStructurePrefab != null)
             {
-                Instantiate(finishedStructurePrefab, transform.position, transform.rotation);
+                int prefabId = Array.IndexOf(PersistentEntityManager.Instance.entityPrefabs, finishedStructurePrefab);
+                var buildablePed = new PersistentEntityData
+                {
+                    prefabId = prefabId,
+                    position = transform.position,
+                    rotation = Quaternion.identity, // Default rotation
+                    isDestroyed = false,
+                };
+                PersistentEntityManager.Instance.RegisterEntity(buildablePed);
             }
 
             Destroy(gameObject);
         }
+    }
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestInventoryDataServerRpc(ulong clientId)
+    {
+
+        List<int> itemIds = new();
+        List<int> quantities = new();
+
+        foreach (var slot in inventory.syncedSlots)
+        {
+            var stack = slot;
+            itemIds.Add(stack.itemId);
+            quantities.Add(stack.quantity);
+        }
+
+        SendInventoryDataClientRpc(itemIds.ToArray(), quantities.ToArray(), new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { clientId } }
+        });
+    }
+    [ClientRpc]
+    private void SendInventoryDataClientRpc(int[] itemIds, int[] quantities, ClientRpcParams rpcParams = default)
+    {
+        if (itemIds.Length != quantities.Length)
+        {
+            Debug.LogError("Inventory data mismatch!");
+            return;
+        }
+
+        // Create a fresh copy for local UI
+        var clientInventory = inventory;
+        inventory.syncedSlots.Clear();
+        for (int i = 0; i < clientInventory.maxSlots; i++)
+        {
+            //var item = ItemDatabase.Instance.Get(itemIds[i]);
+            clientInventory.syncedSlots.Add(new ItemStack(itemIds[i], quantities[i]));
+        }
+
+        // Open the UI with the synced inventory
+        var ui = UIManager.LocalInstance.OpenInCenter(buildableUIPrefab);
+        this.inventory = clientInventory;
+        ui.Bind(this);
     }
 }

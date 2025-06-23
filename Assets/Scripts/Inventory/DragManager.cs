@@ -1,9 +1,10 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class DragManager : MonoBehaviour
 {
-    public static DragManager Instance { get; private set; }
+    public static DragManager Instance { get; set; }
 
     [SerializeField] private GameObject dragIconPrefab;
     [SerializeField] private Canvas canvas;
@@ -13,14 +14,12 @@ public class DragManager : MonoBehaviour
     private ItemSlotUI originalSlot;
 
 
-    public bool IsDragging => draggingStack != null && !draggingStack.IsEmpty();
+    public bool IsDragging => !draggingStack.IsEmpty();
+
 
     private void Awake()
     {
-        if (Instance != null) Destroy(gameObject);
-        Instance = this;
-
-        dragIconInstance = Instantiate(dragIconPrefab, canvas.transform); 
+        dragIconInstance = Instantiate(dragIconPrefab, canvas.transform);
         dragIconInstance.transform.SetAsLastSibling();
         dragImage = dragIconInstance.GetComponent<Image>();
         dragImage.raycastTarget = false;
@@ -33,7 +32,7 @@ public class DragManager : MonoBehaviour
         originalSlot = fromSlot;
         draggingStack = stack.Clone();
 
-        dragImage.sprite = draggingStack.item.icon;
+        dragImage.sprite = ItemDatabase.Instance.Get(draggingStack.itemId).icon;
         dragIconInstance.SetActive(true);
     }
 
@@ -53,39 +52,34 @@ public class DragManager : MonoBehaviour
     {
         dragIconInstance.SetActive(false);
         var result = draggingStack;
-        draggingStack = null;
+        draggingStack = ItemStack.Empty();
         return result;
     }
 
     public void HandleDrop(ItemSlotUI sourceSlot, ItemSlotUI targetSlot)
     {
+        var dragStack = draggingStack;
         var targetStack = targetSlot.binding.GetStack();
 
         if (targetStack.IsEmpty())
         {
-            // Move to empty slot
-            targetSlot.binding.SetStack(draggingStack);
-            EndDrag();
-            sourceSlot.Redraw();
-            targetSlot.Redraw();
+            targetSlot.binding.RequestSet(dragStack);
+            sourceSlot.binding.RequestSet(ItemStack.Empty());
         }
-        else if (targetStack.item == draggingStack.item && targetStack.item.isStackable)
+        else if (targetStack.itemId == dragStack.itemId && ItemDatabase.Instance.Get(dragStack.itemId).isStackable)
         {
-            // Merge stacks
-            targetStack.quantity += draggingStack.quantity;
-            targetSlot.binding.SetStack(targetStack);
-            EndDrag();
-            sourceSlot.Redraw();
-            targetSlot.Redraw();
+            var merged = new ItemStack(dragStack.itemId, targetStack.quantity + dragStack.quantity);
+            targetSlot.binding.RequestSet(merged);
+            sourceSlot.binding.RequestSet(ItemStack.Empty());
         }
         else
         {
-            // Swap
-            targetSlot.binding.SetStack(draggingStack);
-            sourceSlot.binding.SetStack(targetStack);
-            EndDrag();
-            sourceSlot.Redraw();
-            targetSlot.Redraw();
+            targetSlot.binding.RequestSet(dragStack);
+            sourceSlot.binding.RequestSet(targetStack);
         }
+
+        EndDrag();
+        sourceSlot.Redraw();
+        targetSlot.Redraw();
     }
 }

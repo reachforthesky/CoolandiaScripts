@@ -11,6 +11,6 @@ public class ProcessorRecipe : ScriptableObject
 
     public bool Matches(ItemData item)
     {
-        return inputs.Exists(stack => stack.item == item);
+        return inputs.Exists(stack => stack.itemId == item.itemId);
     }
 }

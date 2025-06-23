@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class FuelConsumer : MonoBehaviour
@@ -19,13 +20,13 @@ public class FuelConsumer : MonoBehaviour
     {
         if (!IsBurning) {
             ItemData selectedFuel = null;
-            foreach (var slot in fuelInventory.slots)
+            foreach (var slot in fuelInventory.syncedSlots)
             {
-                if (acceptedFuels.Contains(slot.stack.item))
-                    selectedFuel = slot.stack.item;
+                if (acceptedFuels.Where<ItemData>(item => item.itemId == slot.itemId).Count() > 0)
+                    selectedFuel = ItemDatabase.Instance.Get(slot.itemId);
             }
             if (selectedFuel != null)
-                fuelInventory.RemoveStack(new ItemStack(selectedFuel, 1));
+                fuelInventory.RemoveStack(new ItemStack(selectedFuel.itemId, 1));
                 AddFuel(selectedFuel, 1);
         }
         

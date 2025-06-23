@@ -1,6 +1,7 @@
-using UnityEngine;
-using Unity.Netcode;
 using System.Collections.Generic;
+using Unity.Netcode;
+using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PersistentEntityManager : NetworkBehaviour
 {
@@ -12,6 +13,10 @@ public class PersistentEntityManager : NetworkBehaviour
 
     private Dictionary<int, NetworkObject> runtimeSpawnedEntities = new();
 
+    public override void OnNetworkSpawn()
+    {
+        base.OnNetworkSpawn();
+    }
     private void Awake()
     {
         if (Instance != null)
@@ -23,24 +28,27 @@ public class PersistentEntityManager : NetworkBehaviour
         entities = new NetworkList<PersistentEntityData>();
     }
 
-    public override void OnNetworkSpawn()
+    public GameObject RegisterEntity(PersistentEntityData data)
     {
-        if (IsClient)
+        //if (!IsServer) return null;
+        if (!IsSpawned)
         {
-            entities.OnListChanged += OnClientEntityListChanged;
+            Debug.Log("Persistent Entity Manager is not yet spawned");
+            return null;
         }
+        int index = entities.Count;
+        entities.Add(data); 
 
-        if (IsServer)
-        {
-            entities.OnListChanged += OnServerEntityListChanged;
-        }
-    }
+        var prefab = entityPrefabs[data.prefabId];
+        var go = Instantiate(prefab, data.position, data.rotation, transform);
+        var netObj = go.GetComponent<NetworkObject>();
+        netObj.Spawn();
 
-    public void RegisterEntity(PersistentEntityData data)
-    {
-        if (!IsServer) return;
+        runtimeSpawnedEntities.Add(index, netObj);
 
-        entities.Add(data); // Triggers spawn via OnListChanged
+        var entityData = go.GetComponent<EntityData>();
+        entityData.persistentIndex = index;
+        return go;
     }
 
     public void MarkDestroyed(int index)

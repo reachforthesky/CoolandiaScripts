@@ -1,15 +1,22 @@
 using System;
+using Unity.Netcode;
 
 [System.Serializable]
-public class ItemStack
+public struct ItemStack : INetworkSerializable, IEquatable<ItemStack>
 {
-    public ItemData item;
+    public int itemId;
     public int quantity;
 
-    public ItemStack(ItemData item, int quantity = 1)
+    public ItemStack(int itemId, int quantity = 1)
     {
-        this.item = item;
+        this.itemId = itemId;
         this.quantity = quantity;
+    }
+
+    public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
+    {
+        serializer.SerializeValue(ref itemId);
+        serializer.SerializeValue(ref quantity);
     }
 
     public void ReduceBy(int amount)
@@ -18,20 +25,26 @@ public class ItemStack
         if(this.quantity <= 0)
         {
             this.quantity = 0;
-            this.item = null;
+            this.itemId = 0;
         }
 
     }
 
+    public bool Equals(ItemStack otherStack)
+    {
+        return (this.itemId == otherStack.itemId && 
+            this.quantity == otherStack.quantity);
+    }
+
     public ItemStack Clone()
     {
-        return new ItemStack(this.item, this.quantity);
+        return new ItemStack(this.itemId, this.quantity);
     }
 
     public static ItemStack Empty()
     {
-        return new ItemStack(null, 0);
+        return new ItemStack(0, 0);
     }
 
-    public bool IsEmpty() { return this.item == null || this.quantity == 0; }
+    public bool IsEmpty() { return this.itemId == 0 || this.quantity == 0; }
 }

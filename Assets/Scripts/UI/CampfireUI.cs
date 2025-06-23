@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -21,7 +22,7 @@ public class CampfireUI : MonoBehaviour, IBindableUI
 
     public void Activate()
     {
-        controller.active = !controller.active;
+        controller.ActivateCampfireServerRpc();
     }
 
     public void Close()

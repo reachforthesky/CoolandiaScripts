@@ -51,28 +51,33 @@ public class InventoryUI : MonoBehaviour, IBindableUI
 
     public void Redraw()
     {
-        // Clear
-        foreach (Transform child in slotContainer)
+        foreach(Transform child in slotContainer.transform)
+        {
             Destroy(child.gameObject);
+        }
         slots.Clear();
 
-        // Create new ones
-        foreach (var invSlot in inventory.slots)
+        int slotIndex = 0;
+        foreach (var invSlot in inventory.syncedSlots)
         {
             var ui = Instantiate(itemSlotPrefab, slotContainer);
             var slot = ui.GetComponent<ItemSlotUI>();
-            slot.SetStack(invSlot.stack);
+            slot.SetStack(invSlot);
             slot.highlight.enabled = false;
             slot.slotType = "inventory";
 
+            int index = slotIndex; 
+
             var binding = new ItemSlotBinding(
-                () => invSlot.stack,
-                newStack => invSlot.stack = newStack
+                () => inventory.syncedSlots[index],
+                index,
+                this.inventory
             );
 
             slot.Set(binding);
             slot.OnClicked += HandleSlotClicked;
             slots.Add(slot);
+            slotIndex++;
         }
     }
 

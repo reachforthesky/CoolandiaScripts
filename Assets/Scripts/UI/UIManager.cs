@@ -1,30 +1,30 @@
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    public static UIManager Instance { get; private set; }
+    public static UIManager LocalInstance { get; set; }
     [SerializeField] private GameObject loadingScreenPrefab;
+    [SerializeField] private Transform centerUIGroup;
     private GameObject currentLoadingScreen;
     private bool isLoadingVisible = false;
 
     private Dictionary<UIType, UIWindow> windows = new();
-    private Transform centerUIGroup;
 
     private void Awake()
     {
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
 
-        Instance = this;
-        centerUIGroup = GameObject.FindWithTag("CenterUI").GetComponent<Transform>();
         DontDestroyOnLoad(gameObject);
-
-        RegisterAllInScene(); // Optional auto-registration
     }
+
+    /*public GameObject InstantiateCanvas(GameObject prefab)
+    {
+        var ui = Instantiate(prefab, transform);
+        centerUIGroup = ui.transform.Find("UIOverlayPanel/CenterHorizontalPanel");
+        return ui;
+    }*/
+
     public void ShowLoadingScreen()
     {
         if (isLoadingVisible) return;
@@ -82,7 +82,7 @@ public class UIManager : MonoBehaviour
     }
     public IBindableUI OpenInCenter(GameObject UIPrefab)
     {
-        var canvas = GameObject.FindWithTag("MainCanvas");
+        var canvas = GetComponent<Canvas>();
         if (!canvas) return null;
 
         foreach(Transform child in centerUIGroup)
@@ -124,11 +124,4 @@ public class UIManager : MonoBehaviour
         // Add more hotkeys here if needed
     }
 
-    private void RegisterAllInScene()
-    {
-        foreach (var window in FindObjectsByType<UIWindow>(FindObjectsSortMode.None ))
-        {
-            Register(window);
-        }
-    }
 }

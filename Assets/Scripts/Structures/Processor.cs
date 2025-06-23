@@ -48,8 +48,8 @@ public class Processor : MonoBehaviour
 
             if (job.progress >= job.recipe.processingCost)
             {
-                ConsumeInputs(job.recipe);
-                inventory.AddItem(job.recipe.output);
+                if(ConsumeInputs(job.recipe))
+                    inventory.AddItem(job.recipe.output);
                 activeJobs.RemoveAt(i);
             }
         }
@@ -59,18 +59,30 @@ public class Processor : MonoBehaviour
     {
         foreach (var input in recipe.inputs)
         {
-            if (inventory.Count(input.item) < input.quantity)
+            if (inventory.Count(input.itemId) < input.quantity)
                 return false;
         }
         return true;
     }
 
-    private void ConsumeInputs(ProcessorRecipe recipe)
+    private bool ConsumeInputs(ProcessorRecipe recipe)
     {
         foreach (var input in recipe.inputs)
         {
-            inventory.RemoveStack(input);
+            if (!inventory.Has(input))
+            {
+                Debug.LogWarning($"Cannot consume inputs for recipe {recipe.recipeID}. Missing {input.quantity} of {input.itemId}.");
+                return false;
+            }
         }
+        foreach (var input in recipe.inputs)
+        {
+            if (!inventory.RemoveStack(input))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     private class ProcessingJob

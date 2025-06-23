@@ -1,10 +1,11 @@
 using Microsoft.Unity.VisualStudio.Editor;
 using System;
 using System.Collections.Generic;
+using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class BuildingSystem : MonoBehaviour
+public class BuildingSystem : NetworkBehaviour
 {
     [Header("Buildable Structures")]
     [SerializeField] private List<StructureRecipe> availableRecipes;
@@ -27,6 +28,7 @@ public class BuildingSystem : MonoBehaviour
 
     private void Update()
     {
+        if (!IsOwner) return;
         HandleRecipeSelection();
         UpdatePreviewPosition();
         HandlePlacement();
@@ -88,7 +90,7 @@ public class BuildingSystem : MonoBehaviour
             if (Physics.Raycast(mainCamera.ScreenPointToRay(Input.mousePosition), out var hit, 100f, placementLayer))
             {
                 Vector3 position = SnapToGrid(hit.point);
-                DropStructureGhost(position);
+                DropStructureGhostServerRpc(position, currentRecipe.structureId);
             }
         }
         if (Input.GetKeyDown("escape") && currentPreviewInstance != null && currentRecipe != null)
@@ -102,21 +104,36 @@ public class BuildingSystem : MonoBehaviour
         }
     }
 
-    private bool DropStructureGhost(Vector3 position)
+    [ServerRpc]
+    private void DropStructureGhostServerRpc(Vector3 position, int recipeId)
     {
-        if (currentRecipe == null)
-        {
-            Debug.Log("No recipe selected for ghost modification.");
-            return false;
+        if (!IsServer) {
+            Debug.LogError("DropStructureGhost called on client, but should be on server.");
+            return;
         }
-        var buildGhost = Instantiate(buildGhostPrefab, position, Quaternion.identity);
+        var recipe = StructureDatabase.Instance.Get(recipeId);
+        if (recipe == null)
+        {
+            Debug.Log("No recipe matching selected ID for ghost modification.");
+            return;
+        }
+
+        int prefabId = Array.IndexOf(PersistentEntityManager.Instance.entityPrefabs, buildGhostPrefab);
+        var buildablePed = new PersistentEntityData
+        {
+            prefabId = prefabId,
+            position = position,
+            rotation = Quaternion.identity, // Default rotation
+            isDestroyed = false,
+        };
+
+        var buildGhost = PersistentEntityManager.Instance.RegisterEntity(buildablePed);
         var collider = buildGhost.GetComponent<CapsuleCollider>();
         collider.height = Math.Max(collider.height, 3);
         var buildGhostEntity = buildGhost.GetComponent<BuildableEntityData>();
-        buildGhostEntity.recipe = currentRecipe;
+        buildGhostEntity.recipe = recipe;
         buildGhostEntity.finishedStructurePrefab = currentRecipe.structurePrefab;
         buildGhost.GetComponent<SpriteRenderer>().sprite = currentRecipe.structurePrefab.GetComponent<SpriteRenderer>().sprite;
-        return true;
     }
 
     private Vector3 SnapToGrid(Vector3 rawPos)

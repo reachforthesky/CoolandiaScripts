@@ -5,13 +5,13 @@ using System.Collections.Generic;
 public class Toolbelt : MonoBehaviour
 {
     [Header("Toolbelt Settings")]
-    [SerializeField] private List<InventorySlot> slots = new();
+    public Inventory toolbeltInventory;
     [SerializeField] private int slotCount = 5;
 
     public int selectedSlotIndex { get; private set; } = -1;
 
 
-    public event Action<int, ItemData> OnSlotChanged;
+    public event Action<int, int> OnSlotChanged;
     public event Action OnToolbeltResize;
     public event Action OnContentsChanged;
 
@@ -20,7 +20,7 @@ public class Toolbelt : MonoBehaviour
 
         InitializeSlots(slotCount);
 
-        if (slots.Count > 0)
+        if (toolbeltInventory.slots.Count > 0)
             EquipSlot(0);
 
         OnToolbeltResize?.Invoke();
@@ -28,7 +28,7 @@ public class Toolbelt : MonoBehaviour
 
     private void Update()
     {
-        for (int i = 0; i < slots.Count && i < 9; i++) // 1-9 keypress
+        for (int i = 0; i < toolbeltInventory.slots.Count && i < 9; i++) // 1-9 keypress
         {
             if (Input.GetKeyDown(KeyCode.Alpha1 + i))
             {
@@ -40,26 +40,31 @@ public class Toolbelt : MonoBehaviour
 
     private void InitializeSlots(int size)
     {
-        slots ??= new List<InventorySlot>();
+        toolbeltInventory.slots ??= new List<InventorySlot>();
 
-        while (slots.Count < size)
-            slots.Add(new InventorySlot(new ItemStack(null, 0)));
+        while (toolbeltInventory.slots.Count < size)
+            toolbeltInventory.slots.Add(new InventorySlot(ItemStack.Empty()));
 
-        slotCount = slots.Count;
+        slotCount = toolbeltInventory.slots.Count;
     }
 
     public void EquipSlot(int index)
     {
-        if (index < 0 || index >= slots.Count) return;
+        if (index < 0 || index >= toolbeltInventory.slots.Count) return;
 
         selectedSlotIndex = index;
-        ItemData item = slots[index].stack.item;
+        var itemId = toolbeltInventory.slots[index].stack.itemId;
+        ItemData item = ItemDatabase.Instance.Get(itemId);
 
         Debug.Log(item != null
             ? $"Equipped slot {index + 1}: {item.itemName}"
             : $"Slot {index + 1} is empty.");
 
-        OnSlotChanged?.Invoke(index, item);
+        var id = item != null
+            ? item.itemId
+            : 0;
+
+        OnSlotChanged?.Invoke(index, id);
     }
 
     public void UpdateToolbeltSize(int newSize)
@@ -67,47 +72,47 @@ public class Toolbelt : MonoBehaviour
         if (newSize > slotCount)
         {
             for (int i = slotCount; i < newSize; i++)
-                slots.Add(new InventorySlot(new ItemStack(null, 0)));
+                toolbeltInventory.slots.Add(new InventorySlot(ItemStack.Empty()));
         }
         else if (newSize < slotCount)
         {
-            slots.RemoveRange(newSize, slotCount - newSize);
+            toolbeltInventory.slots.RemoveRange(newSize, slotCount - newSize);
         }
 
-        slotCount = slots.Count;
+        slotCount = toolbeltInventory.slots.Count;
         OnToolbeltResize?.Invoke();
     }
 
     public void SetStack(int index, ItemStack stack)
     {
-        if (index < 0 || index >= slots.Count) return;
+        if (index < 0 || index >= toolbeltInventory.slots.Count) return;
 
-        slots[index].stack = stack;
+        toolbeltInventory.slots[index].stack = stack;
         OnContentsChanged?.Invoke();
 
         if (index == selectedSlotIndex)
-            OnSlotChanged?.Invoke(index, stack.item);
+            OnSlotChanged?.Invoke(index, stack.itemId);
     }
 
     public ItemStack GetStack(int index)
     {
-        return (index >= 0 && index < slots.Count)
-            ? slots[index].stack
+        return (index >= 0 && index < toolbeltInventory.slots.Count)
+            ? toolbeltInventory.slots[index].stack
             : ItemStack.Empty();
     }
 
     public InventorySlot GetSlot(int index)
     {
-        return (index >= 0 && index < slots.Count)
-            ? slots[index]
+        return (index >= 0 && index < toolbeltInventory.slots.Count)
+            ? toolbeltInventory.slots[index]
             : null;
     }
-    public int GetSlotCount() => slots.Count;
+    public int GetSlotCount() => toolbeltInventory.slots.Count;
 
     public ItemData GetEquippedItem()
     {
-        return (selectedSlotIndex >= 0 && selectedSlotIndex < slots.Count)
-            ? slots[selectedSlotIndex].stack.item
+        return (selectedSlotIndex >= 0 && selectedSlotIndex < toolbeltInventory.slots.Count)
+            ? ItemDatabase.Instance.Get(toolbeltInventory.slots[selectedSlotIndex].stack.itemId)
             : null;
     }
 }

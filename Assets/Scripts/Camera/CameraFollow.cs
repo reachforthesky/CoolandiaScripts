@@ -59,12 +59,12 @@ public class CameraFollow : NetworkBehaviour
         // Show/hide loading screen
         if (distance > loadingScreenThreshold && !isFarFromTarget)
         {
-            UIManager.Instance.ShowLoadingScreen();
+            UIManager.LocalInstance.ShowLoadingScreen();
             isFarFromTarget = true;
         }
         else if (distance <= loadingScreenThreshold && isFarFromTarget)
         {
-            UIManager.Instance.HideLoadingScreen();
+            UIManager.LocalInstance.HideLoadingScreen();
             isFarFromTarget = false;
         }
     }

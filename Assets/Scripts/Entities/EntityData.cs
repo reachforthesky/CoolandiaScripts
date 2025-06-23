@@ -21,6 +21,11 @@ public class EntityData : NetworkBehaviour, IItemUsable, IInteractable
     public event Action<ItemData> itemUsed;
     public event Action<PlayerController> interacted;
     public int persistentIndex = -1;
+    ulong IInteractable.NetworkObjectId
+    {
+        get => base.NetworkObjectId;
+        set { /* NetworkObjectId is readonly in NetworkBehaviour, so setter is intentionally left empty */ }
+    }
 
     void Awake()
     {
@@ -69,7 +74,7 @@ public class EntityData : NetworkBehaviour, IItemUsable, IInteractable
         if (!IsServer)
             return;
 
-        Debug.Log($"{name} destroyed!");
+        Debug.Log($"{name} destroyed! {OwnerClientId}");
 
         // Drop items
         foreach (var drop in drops)
