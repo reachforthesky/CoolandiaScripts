@@ -21,7 +21,7 @@ public class ExitBotiTriggerSpawn : MonoBehaviour
         var data = new PersistentEntityData
         {
             prefabId = prefabIndex,
-            position = transform.position + position,
+            position = position,
             rotation = Quaternion.identity,
             isDestroyed = false
         };
@@ -29,7 +29,7 @@ public class ExitBotiTriggerSpawn : MonoBehaviour
         var exitTrigger = PersistentEntityManager.Instance.RegisterEntity(data, transform);
 
         if (exitTrigger != null)
-            exitTrigger.GetComponent<NetworkObject>().TrySetParent(transform);
+            //exitTrigger.GetComponent<NetworkObject>().TrySetParent(transform, false);
 
         // Return via callback
         onSpawned?.Invoke(exitTrigger);

@@ -45,7 +45,7 @@ public class PersistentEntityManager : NetworkBehaviour
         var go = Instantiate(prefab, data.position, data.rotation);
         var netObj = go.GetComponent<NetworkObject>();
         netObj.Spawn();
-        netObj.TrySetParent(parent, worldPositionStays: true);
+        netObj.TrySetParent(parent, false);
         runtimeSpawnedEntities.Add(index, netObj);
 
         var entityData = go.GetComponent<EntityData>();

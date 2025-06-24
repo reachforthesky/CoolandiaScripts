@@ -55,21 +55,29 @@ public class BotiEntrance : NetworkBehaviour
             rotation = Quaternion.identity,
             isDestroyed = false
         };
+
         var botiParent = BotiManager.Instance.GetComponentInChildren<NetworkObject>().transform;
         activeInterior = PersistentEntityManager.Instance.RegisterEntity(data, botiParent);
+
+        activeInterior.name = $"Interior_{gameObject.name}";
+
+        // Move interior after spawn
+        activeInterior.transform.position = data.position;
+
+        // Generate terrain if needed
+        var terrainGenerator = activeInterior.GetComponent<ITerrainGenerator>();
+        if (terrainGenerator != null)
+        {
+            if (id != 0) terrainGenerator.Generate(id);
+            else terrainGenerator.Generate();
+        }
+
+        // NOW start the exit trigger spawn — after interior is in place
         var exitSpawn = activeInterior.GetComponent<ExitBotiTriggerSpawn>();
         StartCoroutine(exitSpawn.SpawnExitCoroutine(trigger =>
         {
             Debug.Log("Exit trigger spawned: " + trigger.name);
         }));
-        activeInterior.name = $"Interior_{gameObject.name}";
-        var terrainGenerator = activeInterior.GetComponent<ITerrainGenerator>();
-        if (terrainGenerator != null)
-            if (id != 0)
-                terrainGenerator.Generate(id);
-            else
-                terrainGenerator.Generate();
-        activeInterior.transform.position = BotiManager.Instance.GetNextInteriorSlot();
     }
 }
 
