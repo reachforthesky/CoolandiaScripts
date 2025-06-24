@@ -11,8 +11,10 @@ public class BotiEntrance : NetworkBehaviour
     private GameObject activeInterior;
     private ExitBotiTrigger exitTrigger;
     public int id = 0;
-    private void Start()
+    public override void OnNetworkSpawn()
     {
+        if (!IsServer) return;
+        base.OnNetworkSpawn();
         if (interiorPrefab == null)
         {
             Debug.LogError("Interior prefab is not assigned in BotiEntrance.");

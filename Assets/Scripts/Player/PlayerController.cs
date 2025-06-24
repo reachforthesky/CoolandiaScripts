@@ -85,7 +85,7 @@ public class PlayerController : NetworkBehaviour
     void Start()
     {
         if (!IsOwner || !controller.enabled) return;
-        Teleport(spawnPosition);
+        TeleportClientRpc(spawnPosition);
         this.transform.position = spawnPosition;
         if (!IsOwner && cam != null)
             cam.gameObject.SetActive(false);
@@ -213,14 +213,12 @@ public class PlayerController : NetworkBehaviour
         
         entity.Interact(this);
     }
-    public void Teleport(Vector3 pos)
+    [ClientRpc(RequireOwnership = false)]
+    public void TeleportClientRpc(Vector3 pos)
     {
-        var slide = pos - this.transform.position;
-        controller.Move(slide);
-    }
-    public void setCharacterControllerEnabled(bool enabled)
-    {
-        controller.enabled = enabled;
+            controller.enabled = false;
+            transform.position = pos;
+            controller.enabled = true;
     }
     public float getStat(Stat stat)
     {

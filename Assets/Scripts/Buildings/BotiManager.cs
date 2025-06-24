@@ -31,14 +31,12 @@ public class BotiManager : MonoBehaviour
         var spawn = interior.GetComponentInChildren<ExitBotiTrigger>();
         if (spawn)
         {
-            player.setCharacterControllerEnabled(false); // Disable movement to prevent issues during teleport
-            player.transform.position = spawn.transform.position;
+            player.TeleportClientRpc(spawn.transform.position);
         }
         // Step 2: Wait one frame to ensure transform settles
         yield return null;
         // Step 3: Then safely parent the interior
         interior.GetComponent<NetworkObject>().TrySetParent(interiorParent, false);
-        player.setCharacterControllerEnabled(true); ; // Re-enable movement after teleport
     }
     public Vector3 GetNextInteriorSlot()
     {
@@ -56,11 +54,9 @@ public class BotiManager : MonoBehaviour
         // Step 1: Move player first
         float radius = botiEntrance.GetComponent<CapsuleCollider>()?.radius ?? 1f;
         Vector3 offset = new Vector3(radius + 1, 0, 0);
-        player.setCharacterControllerEnabled(false);
-        player.transform.position = botiEntrance.transform.position + offset;
+        player.TeleportClientRpc(botiEntrance.transform.position + offset);
 
         // Step 2: Wait one frame to ensure transform settles
         yield return null;
-        player.setCharacterControllerEnabled(true);
     }
 }

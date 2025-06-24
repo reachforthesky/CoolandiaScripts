@@ -6,8 +6,9 @@ public class ExitBotiTrigger : NetworkBehaviour
     [SerializeField] private EntityData botiExitData;
     private EntityData botiEntranceData;
 
-    private void Start()
+    public override void OnNetworkSpawn()
     {
+        if (!IsServer) return;
         if (botiExitData == null)
         {
             Debug.LogError("Boti exit data is not assigned in ExitBotiTrigger.");
