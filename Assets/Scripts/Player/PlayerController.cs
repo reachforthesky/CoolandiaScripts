@@ -1,8 +1,11 @@
 using AYellowpaper.SerializedCollections;
 using System.Collections.Generic;
+using TMPro;
 using Unity.Netcode;
+using Unity.Netcode.Components;
 using UnityEngine;
 using UnityEngine.Windows;
+using static UnityEditor.PlayerSettings;
 using static UnityEngine.EventSystems.EventTrigger;
 
 [RequireComponent(typeof(CharacterController))]
@@ -34,13 +37,15 @@ public class PlayerController : NetworkBehaviour
     private BuildingSystem builder;
     private CraftingSystem crafter;
     private IPlayerInput playerInput = new DefaultKeyboardInput();
-
+    private NetworkTransform netTransform;
 
 
     public override void OnNetworkSpawn()
     {
         base.OnNetworkSpawn();
 
+        netTransform = GetComponent<NetworkTransform>();
+        controller = GetComponent<CharacterController>();
         if (!IsOwner)
         {
             transform.position = spawnPosition;
@@ -56,7 +61,6 @@ public class PlayerController : NetworkBehaviour
         UIManager.LocalInstance = ui.GetComponent<UIManager>();
         DragManager.Instance = ui.GetComponentInChildren<DragManager>();
         //DontDestroyOnLoad(ui);
-        controller = GetComponent<CharacterController>();
         inventory = GetComponent<Inventory>();
         equipment = GetComponent<PlayerEquipment>();
         toolbelt = GetComponentInChildren<Toolbelt>();
@@ -213,12 +217,46 @@ public class PlayerController : NetworkBehaviour
         
         entity.Interact(this);
     }
-    [ClientRpc(RequireOwnership = false)]
-    public void TeleportClientRpc(Vector3 pos)
+    public void Teleport(Vector3 targetPosition)
     {
-            controller.enabled = false;
-            transform.position = pos;
-            controller.enabled = true;
+        if (IsServer)
+            TeleportInternal(targetPosition);
+        else
+            TeleportServerRpc(targetPosition);
+    }
+
+    [ServerRpc]
+    private void TeleportServerRpc(Vector3 pos)
+    {
+        TeleportInternal(pos);
+        TeleportClientRpc(pos, new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } }
+        });
+    }
+
+    private void TeleportInternal(Vector3 pos)
+    {
+        controller.enabled = false;
+        transform.position = pos;
+        controller.enabled = true;
+
+        TeleportClientRpc(pos, new ClientRpcParams
+        {
+            Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } }
+        });
+    }
+
+    [ClientRpc]
+    private void TeleportClientRpc(Vector3 pos, ClientRpcParams rpcParams = default)
+    {
+        if (netTransform != null)
+        {
+            netTransform.Teleport(pos, transform.rotation, transform.localScale);
+        }
+        controller.enabled = false;
+        transform.position = pos;
+        controller.enabled = true;
     }
     public float getStat(Stat stat)
     {

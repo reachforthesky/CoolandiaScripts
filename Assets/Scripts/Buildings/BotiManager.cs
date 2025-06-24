@@ -31,7 +31,7 @@ public class BotiManager : MonoBehaviour
         var spawn = interior.GetComponentInChildren<ExitBotiTrigger>();
         if (spawn)
         {
-            player.TeleportClientRpc(spawn.transform.position);
+            player.Teleport(spawn.transform.position);
         }
         // Step 2: Wait one frame to ensure transform settles
         yield return null;
@@ -54,7 +54,7 @@ public class BotiManager : MonoBehaviour
         // Step 1: Move player first
         float radius = botiEntrance.GetComponent<CapsuleCollider>()?.radius ?? 1f;
         Vector3 offset = new Vector3(radius + 1, 0, 0);
-        player.TeleportClientRpc(botiEntrance.transform.position + offset);
+        player.Teleport(botiEntrance.transform.position + offset);
 
         // Step 2: Wait one frame to ensure transform settles
         yield return null;
