@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -36,7 +37,7 @@ public class BotiManager : MonoBehaviour
         // Step 2: Wait one frame to ensure transform settles
         yield return null;
         // Step 3: Then safely parent the interior
-        interior.transform.SetParent(interiorParent, false);
+        interior.GetComponent<NetworkObject>().TrySetParent(interiorParent, false);
         player.setCharacterControllerEnabled(true); ; // Re-enable movement after teleport
     }
     public Vector3 GetNextInteriorSlot()

@@ -13,10 +13,6 @@ public class PersistentEntityManager : NetworkBehaviour
 
     private Dictionary<int, NetworkObject> runtimeSpawnedEntities = new();
 
-    public override void OnNetworkSpawn()
-    {
-        base.OnNetworkSpawn();
-    }
     private void Awake()
     {
         if (Instance != null)
@@ -28,22 +24,28 @@ public class PersistentEntityManager : NetworkBehaviour
         entities = new NetworkList<PersistentEntityData>();
     }
 
-    public GameObject RegisterEntity(PersistentEntityData data)
+    public int FindIndex(GameObject prefab)
     {
-        //if (!IsServer) return null;
+        return System.Array.IndexOf(entityPrefabs, prefab);
+    }
+
+    public GameObject RegisterEntity(PersistentEntityData data, Transform parent = null)
+    {
         if (!IsSpawned)
         {
             Debug.Log("Persistent Entity Manager is not yet spawned");
             return null;
         }
+        if (parent == null)
+            parent = transform;
         int index = entities.Count;
         entities.Add(data); 
 
         var prefab = entityPrefabs[data.prefabId];
-        var go = Instantiate(prefab, data.position, data.rotation, transform);
+        var go = Instantiate(prefab, data.position, data.rotation);
         var netObj = go.GetComponent<NetworkObject>();
         netObj.Spawn();
-
+        netObj.TrySetParent(parent, worldPositionStays: true);
         runtimeSpawnedEntities.Add(index, netObj);
 
         var entityData = go.GetComponent<EntityData>();

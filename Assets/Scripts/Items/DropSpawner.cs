@@ -21,8 +21,7 @@ public class DropSpawner : NetworkBehaviour
         // Find index of dropPrefab in PEM's list
         if (PersistentEntityManager.Instance != null && dropPrefab != null)
         {
-            var prefabs = PersistentEntityManager.Instance.entityPrefabs;
-            dropPrefabId = System.Array.IndexOf(prefabs, dropPrefab);
+            dropPrefabId = PersistentEntityManager.Instance.FindIndex(dropPrefab);
 
             if (dropPrefabId == -1)
                 Debug.LogError("[DropSpawner] Drop prefab not found in PEM entityPrefabs list!");

@@ -1,6 +1,7 @@
+using Unity.Netcode;
 using UnityEngine;
 
-public class ExitBotiTrigger : MonoBehaviour
+public class ExitBotiTrigger : NetworkBehaviour
 {
     [SerializeField] private EntityData botiExitData;
     private EntityData botiEntranceData;

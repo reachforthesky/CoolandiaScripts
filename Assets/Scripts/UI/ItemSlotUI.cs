@@ -34,12 +34,23 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-
+        var sourceStack = binding.GetStack(); 
         var stack = binding.GetStack();
+
+        if (eventData.button == PointerEventData.InputButton.Right)
+        {
+            stack.quantity = stack.quantity / 2;
+        }
         if (stack.IsEmpty()) return;
 
-        DragManager.Instance.BeginDrag(this, stack); // <-- Use RPC to clear it
-        DragManager.Instance.UpdateDragPosition(eventData.position);
+        DragManager.Instance.BeginDrag(this, stack);
+        if(stack.Equals(sourceStack))
+            icon.enabled = false;
+        else
+        {
+            stackText.text = (sourceStack.quantity - stack.quantity).ToString();
+        }
+            DragManager.Instance.UpdateDragPosition(eventData.position);
     }
     public void OnDrag(PointerEventData eventData)
     {
@@ -48,6 +59,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     }
     public void OnEndDrag(PointerEventData eventData)
     {
+        //icon.enabled = true;
         if (!DragManager.Instance.IsDragging)
             return;
 
@@ -70,7 +82,6 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
 
         var targetSlot = eventData.pointerEnter?.GetComponentInParent<ItemSlotUI>();
 
-        binding.RequestSet(ItemStack.Empty());
         // Let DragManager resolve drop logic
         DragManager.Instance.HandleDrop(this, targetSlot);
     }

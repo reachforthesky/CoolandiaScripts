@@ -64,7 +64,8 @@ public class EntitySpawner : NetworkBehaviour
                         isDestroyed = false
                     };
 
-                    PersistentEntityManager.Instance.RegisterEntity(data);
+                    var obj = PersistentEntityManager.Instance.RegisterEntity(data, transform);
+                    obj.GetComponent<NetworkObject>().TrySetParent(transform.parent);
                 }
             }
         }

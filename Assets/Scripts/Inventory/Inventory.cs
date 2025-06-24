@@ -32,7 +32,7 @@ public class Inventory : NetworkBehaviour
         RebuildSlotsFromNetworkList();
     }
 
-    private void OnDestroy()
+    new private void OnDestroy()
     {
         if (syncedSlots != null)
             syncedSlots.OnListChanged -= OnSyncedSlotsChanged;

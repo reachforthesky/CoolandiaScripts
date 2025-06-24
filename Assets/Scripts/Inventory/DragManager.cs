@@ -1,6 +1,7 @@
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public class DragManager : MonoBehaviour
 {
@@ -9,7 +10,7 @@ public class DragManager : MonoBehaviour
     [SerializeField] private GameObject dragIconPrefab;
     [SerializeField] private Canvas canvas;
     private GameObject dragIconInstance;
-    private Image dragImage;
+    private UnityEngine.UI.Image dragImage;
     private ItemStack draggingStack;
     private ItemSlotUI originalSlot;
 
@@ -21,7 +22,7 @@ public class DragManager : MonoBehaviour
     {
         dragIconInstance = Instantiate(dragIconPrefab, canvas.transform);
         dragIconInstance.transform.SetAsLastSibling();
-        dragImage = dragIconInstance.GetComponent<Image>();
+        dragImage = dragIconInstance.GetComponent<UnityEngine.UI.Image>();
         dragImage.raycastTarget = false;
         dragIconInstance.SetActive(false);
     }
@@ -58,24 +59,51 @@ public class DragManager : MonoBehaviour
 
     public void HandleDrop(ItemSlotUI sourceSlot, ItemSlotUI targetSlot)
     {
-        var dragStack = draggingStack;
+        var dragStack = draggingStack; // quantity to move
+        var sourceStack = sourceSlot.binding.GetStack(); // full original stack
         var targetStack = targetSlot.binding.GetStack();
 
-        if (targetStack.IsEmpty())
-        {
-            targetSlot.binding.RequestSet(dragStack);
-            sourceSlot.binding.RequestSet(ItemStack.Empty());
-        }
-        else if (targetStack.itemId == dragStack.itemId && ItemDatabase.Instance.Get(dragStack.itemId).isStackable)
+        int remainingInSource = sourceStack.quantity - dragStack.quantity;
+
+        // --- Merge ---
+        if (!targetStack.IsEmpty() && targetStack.itemId == dragStack.itemId &&
+            ItemDatabase.Instance.Get(dragStack.itemId).isStackable)
         {
             var merged = new ItemStack(dragStack.itemId, targetStack.quantity + dragStack.quantity);
             targetSlot.binding.RequestSet(merged);
-            sourceSlot.binding.RequestSet(ItemStack.Empty());
+            sourceSlot.binding.RequestSet(remainingInSource > 0
+                ? new ItemStack(sourceStack.itemId, remainingInSource)
+                : ItemStack.Empty());
         }
-        else
+
+        // --- Empty slot ---
+        else if (targetStack.IsEmpty())
         {
             targetSlot.binding.RequestSet(dragStack);
-            sourceSlot.binding.RequestSet(targetStack);
+            sourceSlot.binding.RequestSet(remainingInSource > 0
+                ? new ItemStack(sourceStack.itemId, remainingInSource)
+                : ItemStack.Empty());
+        }
+
+        // --- Swap (with partial source stack) ---
+        else
+        {
+            // Swap only valid if full stack dragged, otherwise reinsert source portion
+            if (dragStack.quantity == sourceStack.quantity)
+            {
+                // Full-stack swap: safe
+                targetSlot.binding.RequestSet(dragStack);
+                sourceSlot.binding.RequestSet(targetStack);
+            }
+            else
+            {
+                // Partial-stack swap: can't overwrite remaining source stack
+                Debug.LogWarning("Can't swap partial stacks with different items.");
+
+                // Optionally cancel or revert drag
+                sourceSlot.binding.RequestSet(sourceStack); // restore original
+                targetSlot.binding.RequestSet(targetStack); // leave untouched
+            }
         }
 
         EndDrag();
