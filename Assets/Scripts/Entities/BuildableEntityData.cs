@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 public class BuildableEntityData : EntityData, IInteractable
 {
-    
+
+    public NetworkVariable<FixedString64Bytes> spriteId = new();
     [SerializeField] public GameObject finishedStructurePrefab;
     [SerializeField] private GameObject buildableUIPrefab;
     public Inventory inventory;
@@ -24,6 +26,23 @@ public class BuildableEntityData : EntityData, IInteractable
         {
             inventory.syncedSlots.Add(ItemStack.Empty());
         }
+    }
+
+    private void OnEnable()
+    {
+        spriteId.OnValueChanged += OnSpriteIdChanged;
+    }
+
+    private void OnDisable()
+    {
+        spriteId.OnValueChanged -= OnSpriteIdChanged;
+    }
+    private void OnSpriteIdChanged(FixedString64Bytes oldVal, FixedString64Bytes newVal)
+    {
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        Sprite sprite = GameDatabaseManager.Instance.Sprites.GetSprite(newVal.ToString());
+        if (sprite != null)
+            sr.sprite = sprite;
     }
     public bool canBuild()
     {
@@ -128,7 +147,7 @@ public class BuildableEntityData : EntityData, IInteractable
         inventory.syncedSlots.Clear();
         for (int i = 0; i < clientInventory.maxSlots; i++)
         {
-            //var item = ItemDatabase.Instance.Get(itemIds[i]);
+            //var item = GameDatabaseManager.Instance.Items.Get(itemIds[i]);
             clientInventory.syncedSlots.Add(new ItemStack(itemIds[i], quantities[i]));
         }
 

@@ -10,7 +10,7 @@ public class BotiEntrance : NetworkBehaviour
 
     private GameObject activeInterior;
     private ExitBotiTrigger exitTrigger;
-    public int id = 0;
+    public NetworkVariable<int> id = new();
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
@@ -68,16 +68,18 @@ public class BotiEntrance : NetworkBehaviour
         var terrainGenerator = activeInterior.GetComponent<ITerrainGenerator>();
         if (terrainGenerator != null)
         {
-            if (id != 0) terrainGenerator.Generate(id);
+            if (id.Value != 0) terrainGenerator.Generate(id.Value);
             else terrainGenerator.Generate();
         }
 
         // NOW start the exit trigger spawn — after interior is in place
         var exitSpawn = activeInterior.GetComponent<ExitBotiTriggerSpawn>();
+        if (exitSpawn) {
         StartCoroutine(exitSpawn.SpawnExitCoroutine(trigger =>
         {
             Debug.Log("Exit trigger spawned: " + trigger.name);
-        }));
+            }));
+        }
     }
 }
 

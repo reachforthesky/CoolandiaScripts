@@ -5,8 +5,10 @@ public class DFSMazeGenerator : CaveGenerator
 {
     public int width = 30;
     public int height = 30;
+    public int seed = 123;
     public override int[,] GetMap()
     {
+        System.Random rng = new System.Random(seed);
         // Ensure odd dimensions for proper maze
         if (width % 2 == 0) width += 1;
         if (height % 2 == 0) height += 1;
@@ -32,20 +34,26 @@ public class DFSMazeGenerator : CaveGenerator
 
         while (stack.Count > 0)
         {
-            Vector2Int current = stack.Pop();
-            Shuffle(directions);
+            Vector2Int current = stack.Peek(); // Don't pop yet
+            Shuffle(directions, rng);
 
+            bool moved = false;
             foreach (var dir in directions)
             {
                 Vector2Int next = current + dir;
-
                 if (IsInBounds(next, width, height) && map[next.x, next.y] == 1)
                 {
                     Vector2Int between = current + dir / 2;
                     map[between.x, between.y] = 0;
                     map[next.x, next.y] = 0;
                     stack.Push(next);
+                    moved = true;
+                    break; // Only move to one neighbor
                 }
+            }
+            if (!moved)
+            {
+                stack.Pop(); // Backtrack if no moves
             }
         }
         Debug.Log(MapToString(map));
@@ -57,11 +65,11 @@ public class DFSMazeGenerator : CaveGenerator
         return pos.x > 0 && pos.x < width - 1 && pos.y > 0 && pos.y < height - 1;
     }
 
-    private void Shuffle(Vector2Int[] array)
+    private void Shuffle(Vector2Int[] array, System.Random rng)
     {
         for (int i = 0; i < array.Length; i++)
         {
-            int j = Random.Range(i, array.Length);
+            int j = rng.Next(i, array.Length);
             (array[i], array[j]) = (array[j], array[i]);
         }
     }

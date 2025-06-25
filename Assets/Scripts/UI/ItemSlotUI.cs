@@ -93,7 +93,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     public void Redraw()
     {
         var stack = binding?.GetStack() ?? ItemStack.Empty();
-        var stackItem = ItemDatabase.Instance.Get(stack.itemId);
+        var stackItem = GameDatabaseManager.Instance.Items.Get(stack.itemId);
         icon.enabled = stackItem;
         if(stackItem)
             icon.sprite = stackItem.icon;
@@ -112,7 +112,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
         else
         {
             icon.enabled = true;
-            icon.sprite = ItemDatabase.Instance.Get(stack.itemId).icon;
+            icon.sprite = GameDatabaseManager.Instance.Items.Get(stack.itemId).icon;
             stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         }
     }

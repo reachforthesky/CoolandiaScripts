@@ -44,7 +44,7 @@ public class ItemDrop : NetworkBehaviour
 
     private void TryResolveItem(int id)
     {
-        itemData = ItemDatabase.Instance?.Get(id);
+        itemData = GameDatabaseManager.Instance.Items.Get(id);
         if (itemData != null)
         {
             UpdateVisuals();

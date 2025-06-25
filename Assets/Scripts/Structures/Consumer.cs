@@ -23,7 +23,7 @@ public class FuelConsumer : MonoBehaviour
             foreach (var slot in fuelInventory.syncedSlots)
             {
                 if (acceptedFuels.Where<ItemData>(item => item.itemId == slot.itemId).Count() > 0)
-                    selectedFuel = ItemDatabase.Instance.Get(slot.itemId);
+                    selectedFuel = GameDatabaseManager.Instance.Items.Get(slot.itemId);
             }
             if (selectedFuel != null)
                 fuelInventory.RemoveStack(new ItemStack(selectedFuel.itemId, 1));

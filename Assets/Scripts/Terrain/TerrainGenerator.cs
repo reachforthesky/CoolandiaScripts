@@ -147,15 +147,14 @@ public class TerrainGenerator : NetworkBehaviour
                 int index = x + z * (mapWidth + 1);
 
                 float slope = mapData.tiles[x, z].slope;
-
                 // Normalize slope (tweak slopeSensitivity to control visual output)
                 float normalSlope = Mathf.Clamp01(slope * slopeSensitivity);
 
-                // Map to color (e.g., green = flat, red = steep)
-                Color slopeColor = Color.Lerp(new Color(0f, 0.2f, 0f), Color.grey, normalSlope);
+                // Map to color (e.g., green = flat, black = steep)
+                Color slopeColor = Color.Lerp(new Color(0f,0f,0f), new Color(0f, 1f, 0f), normalSlope);
 
                 if (mapData.tiles[x, z].isRamp)
-                    slopeColor = new Color(0f, 0.2f, 0f);
+                    slopeColor = new Color(0f, 0.5f, 0f);
 
                 // Apply to 4 corner vertices of this tile
 
@@ -170,6 +169,7 @@ public class TerrainGenerator : NetworkBehaviour
         for (int i = 0; i < vertices.Length; i++)
         {
             finalColors[i] = colorWriteCounts[i] > 0 ? colors[i] / colorWriteCounts[i] : Color.white;
+            Debug.Log($"Vertex {i} color: {finalColors[i].g} (writes: {colorWriteCounts[i]})");
         }
 
         return finalColors;

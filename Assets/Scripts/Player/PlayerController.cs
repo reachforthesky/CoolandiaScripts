@@ -204,7 +204,7 @@ public class PlayerController : NetworkBehaviour
         var entity = netObj.GetComponent<EntityData>();
         if (entity == null) return;
 
-        var item = ItemDatabase.Instance.Get(itemId);
+        var item = GameDatabaseManager.Instance.Items.Get(itemId);
         if (item != null)
             entity.ItemUsed(item);
     }

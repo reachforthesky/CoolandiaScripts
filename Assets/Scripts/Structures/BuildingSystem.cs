@@ -111,7 +111,7 @@ public class BuildingSystem : NetworkBehaviour
             Debug.LogError("DropStructureGhost called on client, but should be on server.");
             return;
         }
-        var recipe = StructureDatabase.Instance.Get(recipeId);
+        var recipe = GameDatabaseManager.Instance.Structures.Get(recipeId);
         if (recipe == null)
         {
             Debug.Log("No recipe matching selected ID for ghost modification.");
@@ -133,7 +133,8 @@ public class BuildingSystem : NetworkBehaviour
         var buildGhostEntity = buildGhost.GetComponent<BuildableEntityData>();
         buildGhostEntity.recipe = recipe;
         buildGhostEntity.finishedStructurePrefab = currentRecipe.structurePrefab;
-        buildGhost.GetComponent<SpriteRenderer>().sprite = currentRecipe.structurePrefab.GetComponent<SpriteRenderer>().sprite;
+        string spriteId = GameDatabaseManager.Instance.Sprites.GetId(currentRecipe.structurePrefab.GetComponent<SpriteRenderer>().sprite);
+        buildGhostEntity.spriteId.Value = spriteId;
     }
 
     private Vector3 SnapToGrid(Vector3 rawPos)

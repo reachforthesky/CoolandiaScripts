@@ -1,25 +1,17 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ItemDatabase : MonoBehaviour
+[CreateAssetMenu(fileName = "ItemDatabase", menuName = "Databases/ItemDatabase")]
+public class ItemDatabase : ScriptableObject
 {
-    public static ItemDatabase Instance { get; private set; }
-
     [SerializeField] private List<ItemData> items = new();
 
     private Dictionary<int, ItemData> idToItem = new();
 
-    private void Awake()
+    public void Initialize()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
-
+        idToItem.Clear();
         int i = 1;
-
         foreach (var item in items)
         {
             if (item == null) continue;
@@ -34,4 +26,6 @@ public class ItemDatabase : MonoBehaviour
         idToItem.TryGetValue(id, out var item);
         return item;
     }
+
+    public List<ItemData> AllItems => items;
 }

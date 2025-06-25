@@ -1,10 +1,18 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class BotiExitPlacer : MonoBehaviour
 {
     [SerializeField] private GameObject exitPrefab;
     [SerializeField] private PlacementMode placementMode = PlacementMode.CenterOfMap;
+    private int prefabIndex = -1;
 
+
+    void Start()
+    {
+        prefabIndex = PersistentEntityManager.Instance.FindIndex(exitPrefab);
+    }
     public enum PlacementMode
     {
         FirstOpenTile,
@@ -85,5 +93,28 @@ public class BotiExitPlacer : MonoBehaviour
         }
 
         return maxDist > 0 ? furthest : (Vector2Int?)null;
+    }
+
+
+    public IEnumerator SpawnExitCoroutine(Vector3 position, System.Action<GameObject> onSpawned)
+    {
+        // Wait until PEM is ready
+        yield return new WaitUntil(() => PersistentEntityManager.Instance != null && PersistentEntityManager.Instance.IsSpawned);
+
+        var data = new PersistentEntityData
+        {
+            prefabId = prefabIndex,
+            position = position,
+            rotation = Quaternion.identity,
+            isDestroyed = false
+        };
+
+        var exitTrigger = PersistentEntityManager.Instance.RegisterEntity(data, transform);
+
+        if (exitTrigger != null)
+            //exitTrigger.GetComponent<NetworkObject>().TrySetParent(transform, false);
+
+            // Return via callback
+            onSpawned?.Invoke(exitTrigger);
     }
 }

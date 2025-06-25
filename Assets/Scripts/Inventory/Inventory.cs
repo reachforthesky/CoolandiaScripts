@@ -66,7 +66,7 @@ public class Inventory : NetworkBehaviour
         if (!IsServer) return;
         if (stack.itemId == 0) return;
 
-        var item = ItemDatabase.Instance.Get(stack.itemId);
+        var item = GameDatabaseManager.Instance.Items.Get(stack.itemId);
         if (!Accepts(stack.itemId))
         {
             Debug.LogWarning($"[Inventory] Item {item.name} not accepted.");
@@ -143,7 +143,7 @@ public class Inventory : NetworkBehaviour
 
     public bool Accepts(int itemId)
     {
-        var item = ItemDatabase.Instance.Get(itemId);
+        var item = GameDatabaseManager.Instance.Items.Get(itemId);
         return acceptedItems.Count == 0 || acceptedItems.Contains(item);
     }
     [ServerRpc(RequireOwnership = false)]

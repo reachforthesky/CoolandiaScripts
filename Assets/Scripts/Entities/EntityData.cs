@@ -35,7 +35,7 @@ public class EntityData : NetworkBehaviour, IItemUsable, IInteractable
     [ServerRpc(RequireOwnership = false)]
     public void UseItemServerRpc(int itemId)
     {
-        var item = ItemDatabase.Instance.Get(itemId);
+        var item = GameDatabaseManager.Instance.Items.Get(itemId);
         ItemUsed(item);
     }
     /// <summary>

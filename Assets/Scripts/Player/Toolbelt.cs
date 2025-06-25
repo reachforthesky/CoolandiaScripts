@@ -54,7 +54,7 @@ public class Toolbelt : MonoBehaviour
 
         selectedSlotIndex = index;
         var itemId = toolbeltInventory.slots[index].stack.itemId;
-        ItemData item = ItemDatabase.Instance.Get(itemId);
+        ItemData item = GameDatabaseManager.Instance.Items.Get(itemId);
 
         Debug.Log(item != null
             ? $"Equipped slot {index + 1}: {item.itemName}"
@@ -112,7 +112,7 @@ public class Toolbelt : MonoBehaviour
     public ItemData GetEquippedItem()
     {
         return (selectedSlotIndex >= 0 && selectedSlotIndex < toolbeltInventory.slots.Count)
-            ? ItemDatabase.Instance.Get(toolbeltInventory.slots[selectedSlotIndex].stack.itemId)
+            ? GameDatabaseManager.Instance.Items.Get(toolbeltInventory.slots[selectedSlotIndex].stack.itemId)
             : null;
     }
 }
