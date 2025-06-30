@@ -3,22 +3,14 @@ using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
-public class EntitySpawner : NetworkBehaviour
+public class MultipleEntitySpawner : EntitySpawner
 {
-    [Header("Entity Settings")]
-    public GameObject entityPrefab; // Billboard sprite prefab
-    public TerrainGenerator terrainGenerator;
-    public float entityNoiseScale = 0.05f;
-    public float entityThreshold = 0.6f;
-    public int seed = 42;
-    public float clusterNoiseScale = 0.01f; // For clustered patches
-    public float clusterStrength = 0.4f;    // Mix-in strength for secondary clustering
-    public float spriteYOffset = 0.5f;
+    [Header("Entity List")]
+    public List<GameObject> entityPrefabs; 
 
     private System.Random rng;
 
-    [ButtonInvoke("GenerateTerrain", displayIn: ButtonInvoke.DisplayIn.PlayAndEditModes)] public bool generateTerrain;
-    public virtual void SpawnEntities(TileMapData mapData)
+    public override void SpawnEntities(TileMapData mapData)
     {
         if (!IsServer)
             return;
@@ -54,8 +46,8 @@ public class EntitySpawner : NetworkBehaviour
                         tile.maxHeight + spriteYOffset,
                         z * tileSize + tileSize / 2f + randOffsetZ
                     );
-
-                    int prefabId = Array.IndexOf(PersistentEntityManager.Instance.entityPrefabs, entityPrefab);
+                    var selectedPrefab = entityPrefabs[rng.Next(entityPrefabs.Count)];
+                    int prefabId = Array.IndexOf(PersistentEntityManager.Instance.entityPrefabs, selectedPrefab);
                     PersistentEntityData data = new PersistentEntityData
                     {
                         prefabId = prefabId, // Use a matching index from PersistentEntityManager.entityPrefabs
@@ -71,12 +63,7 @@ public class EntitySpawner : NetworkBehaviour
         }
     }
 
-    public void GenerateTerrain()
-    {
-        terrainGenerator.GenerateTerrain();
-    }
-
-    protected void ClearExistingEntities()
+    /*void ClearExistingEntities()
     {
         // Cache children before modifying the hierarchy
         List<GameObject> toDestroy = new List<GameObject>();
@@ -106,5 +93,5 @@ public class EntitySpawner : NetworkBehaviour
         Destroy(go);
     }
 #endif
-    }
+    }*/
 }

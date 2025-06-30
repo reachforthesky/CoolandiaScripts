@@ -37,7 +37,10 @@ public class BotiExitPlacer : MonoBehaviour
 
         Vector3 worldPos = meshGenerator.GetTileCenterWorldPosition(tilePos.Value.x, tilePos.Value.y);
 
-        Instantiate(exitPrefab, worldPos + Vector3.up * 1f, Quaternion.identity, this.transform);
+        StartCoroutine(SpawnExitCoroutine(worldPos + Vector3.up * 1f, (trigger) =>
+        {
+            Debug.Log("Exit trigger spawned: " + trigger.name);
+        }));
     }
 
     private Vector2Int? FindFirstOpenTile(int[,] map)

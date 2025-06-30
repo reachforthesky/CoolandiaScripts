@@ -107,34 +107,48 @@ public class BuildingSystem : NetworkBehaviour
     [ServerRpc]
     private void DropStructureGhostServerRpc(Vector3 position, int recipeId)
     {
-        if (!IsServer) {
+        if (!IsServer)
+        {
             Debug.LogError("DropStructureGhost called on client, but should be on server.");
             return;
         }
+
         var recipe = GameDatabaseManager.Instance.Structures.Get(recipeId);
         if (recipe == null)
         {
-            Debug.Log("No recipe matching selected ID for ghost modification.");
+            Debug.LogWarning($"No recipe matching ID {recipeId}.");
             return;
         }
 
-        int prefabId = Array.IndexOf(PersistentEntityManager.Instance.entityPrefabs, buildGhostPrefab);
+        int prefabId = PersistentEntityManager.Instance.FindIndex(buildGhostPrefab); 
+
         var buildablePed = new PersistentEntityData
         {
             prefabId = prefabId,
             position = position,
-            rotation = Quaternion.identity, // Default rotation
+            rotation = Quaternion.identity,
             isDestroyed = false,
         };
 
         var buildGhost = PersistentEntityManager.Instance.RegisterEntity(buildablePed);
+
+        // Optional: handle collider fix
         var collider = buildGhost.GetComponent<CapsuleCollider>();
-        collider.height = Math.Max(collider.height, 3);
+        if (collider != null)
+            collider.height = Mathf.Max(collider.height, 3);
+
+        // Assign networked structure data
         var buildGhostEntity = buildGhost.GetComponent<BuildableEntityData>();
-        buildGhostEntity.recipe = recipe;
-        buildGhostEntity.finishedStructurePrefab = currentRecipe.structurePrefab;
-        string spriteId = GameDatabaseManager.Instance.Sprites.GetId(currentRecipe.structurePrefab.GetComponent<SpriteRenderer>().sprite);
-        buildGhostEntity.spriteId.Value = spriteId;
+        buildGhostEntity.structureRecipeId.Value = recipe.structureId;
+        buildGhostEntity.finishedStructurePrefab = recipe.structurePrefab;
+
+        // Look up the sprite ID from the prefab's sprite and sync it
+        var spriteRenderer = recipe.structurePrefab.GetComponent<SpriteRenderer>();
+        if (spriteRenderer != null)
+        {
+            string spriteId = GameDatabaseManager.Instance.Sprites.GetId(spriteRenderer.sprite);
+            buildGhostEntity.spriteId.Value = spriteId;
+        }
     }
 
     private Vector3 SnapToGrid(Vector3 rawPos)

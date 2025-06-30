@@ -7,6 +7,7 @@ public class GameDatabaseManager : MonoBehaviour
     [SerializeField] private ItemDatabase itemDatabase; 
     [SerializeField] private StructureDatabase structureDatabase;
     [SerializeField] private SpriteDatabase spriteDatabase;
+    [SerializeField] private StructureRecipeDatabase structureRecipeDatabase;
 
     private void Awake()
     {
@@ -20,9 +21,11 @@ public class GameDatabaseManager : MonoBehaviour
         itemDatabase.Initialize();
         structureDatabase.Initialize();
         spriteDatabase.Initialize();
+        structureRecipeDatabase.Initialize();
     }
 
     public ItemDatabase Items => itemDatabase;
     public StructureDatabase Structures => structureDatabase;
     public  SpriteDatabase Sprites => spriteDatabase;
+    public StructureRecipeDatabase StructureRecipes => structureRecipeDatabase;
 }

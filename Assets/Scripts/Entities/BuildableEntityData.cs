@@ -7,26 +7,72 @@ using UnityEngine.UIElements;
 
 public class BuildableEntityData : EntityData, IInteractable
 {
-
+    public NetworkVariable<int> structureRecipeId = new();
     public NetworkVariable<FixedString64Bytes> spriteId = new();
     [SerializeField] public GameObject finishedStructurePrefab;
     [SerializeField] private GameObject buildableUIPrefab;
     public Inventory inventory;
     public StructureRecipe recipe;
     private int buildPoints = 0;
-
-    public void Awake()
+    public override void OnNetworkSpawn()
     {
-        if (inventory.syncedSlots.Count > 0)
+        base.OnNetworkSpawn();
+
+        structureRecipeId.OnValueChanged += UpdateRecipe;
+
+        // Resolve structure recipe on client
+        if (IsClient)
         {
-            inventory.syncedSlots.Clear();
+            recipe = GameDatabaseManager.Instance.Structures.Get(structureRecipeId.Value);
         }
+
+        if (inventory.syncedSlots.Count == 0)
+        {
+            inventory.maxSlots = recipe.requiredItems.Count;
+            for (int i = 0; i < inventory.maxSlots; i++)
+                inventory.syncedSlots.Add(ItemStack.Empty());
+        }
+
+        // Sync sprite if already assigned
+        var sprite = GameDatabaseManager.Instance.Sprites.GetSprite(spriteId.Value.ToString());
+        if (sprite != null)
+        {
+            GetComponent<SpriteRenderer>().sprite = sprite;
+        }
+    }
+    private void InitializeInventory()
+    {
+        if (recipe == null)
+        {
+            Debug.LogWarning("Tried to init inventory before recipe was set.");
+            return;
+        }
+
         inventory.maxSlots = recipe.requiredItems.Count;
+        inventory.syncedSlots.Clear();
         for (int i = 0; i < inventory.maxSlots; i++)
         {
             inventory.syncedSlots.Add(ItemStack.Empty());
         }
     }
+    private void UpdateRecipe(int previousValue, int newValue)
+    {
+        recipe = GameDatabaseManager.Instance.Structures.Get(newValue);
+        InitializeInventory();
+    }
+
+    /*public void Awake()
+{
+   if (inventory.syncedSlots.Count > 0)
+   {
+       inventory.syncedSlots.Clear();
+   }
+   inventory.maxSlots = recipe.requiredItems.Count;
+   for (int i = 0; i < inventory.maxSlots; i++)
+   {
+       inventory.syncedSlots.Add(ItemStack.Empty());
+   }
+}*/
 
     private void OnEnable()
     {
