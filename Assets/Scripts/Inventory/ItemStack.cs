@@ -1,13 +1,14 @@
 using System;
+using Unity.Collections;
 using Unity.Netcode;
 
 [System.Serializable]
 public struct ItemStack : INetworkSerializable, IEquatable<ItemStack>
 {
-    public int itemId;
+    public FixedString32Bytes itemId;
     public int quantity;
 
-    public ItemStack(int itemId, int quantity = 1)
+    public ItemStack(FixedString32Bytes itemId, int quantity = 1)
     {
         this.itemId = itemId;
         this.quantity = quantity;
@@ -25,7 +26,7 @@ public struct ItemStack : INetworkSerializable, IEquatable<ItemStack>
         if(this.quantity <= 0)
         {
             this.quantity = 0;
-            this.itemId = 0;
+            this.itemId = "";
         }
 
     }
@@ -43,8 +44,8 @@ public struct ItemStack : INetworkSerializable, IEquatable<ItemStack>
 
     public static ItemStack Empty()
     {
-        return new ItemStack(0, 0);
+        return new ItemStack("", 0);
     }
 
-    public bool IsEmpty() { return this.itemId == 0 || this.quantity == 0; }
+    public bool IsEmpty() { return this.itemId.IsEmpty || this.quantity == 0; }
 }

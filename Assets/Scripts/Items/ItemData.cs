@@ -1,22 +1,61 @@
 // ItemData.cs
-using AYellowpaper.SerializedCollections;
-using NUnit.Framework;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
+using Unity.Collections;
 
-[CreateAssetMenu(menuName = "Inventory/Item")]
-public class ItemData : ScriptableObject
+[Serializable]
+public struct ItemData
 {
-    public string itemName;
-    public Sprite icon;
-    public bool isStackable = true;
-    public int damage = 1;
-    [SerializedDictionary("Stat", "Value")]
-    public SerializedDictionary<Stat, float> stats= new SerializedDictionary<Stat, float>();
-    public List<Tag> tags = new List<Tag>();
+    /// <summary>
+    /// Unique ID used for network syncing and database lookups.
+    /// </summary>
+    public FixedString32Bytes itemId;
 
-    [Tooltip("Unique ID used for network syncing")]
-    public int itemId;
+    /// <summary>
+    /// Display name.
+    /// </summary>
+    public string itemName;
+
+    /// <summary>
+    /// Reference to the icon asset (by ID, not Sprite).
+    /// </summary>
+    public string iconId;
+
+    /// <summary>
+    /// Max stack size for this item type.
+    /// </summary>
+    public int stackSize;
+
+    /// <summary>
+    /// Arbitrary stats, e.g. durability, weight, etc.
+    /// </summary>
+    public Dictionary<string, float> stats;
+
+    /// <summary>
+    /// Tags for categorization (e.g. "Food", "Tool").
+    /// </summary>
+    public List<string> tags;
+
+    public static ItemData Empty()
+    {
+        return new ItemData
+        {
+            itemId = string.Empty,
+            itemName = string.Empty,
+            iconId = string.Empty,
+            stackSize = 0,
+            stats = new Dictionary<string, float>(),
+            tags = new List<string>()
+        };
+    }
+
+    public bool IsEmpty()
+    {
+        return itemId.IsEmpty;
+    }
+
+    public bool IsStackable()
+    {
+        return stackSize > 1;
+    }
 }

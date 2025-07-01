@@ -103,22 +103,22 @@ public class BuildableEntityData : EntityData, IInteractable
     {
         if(!item.tags.Contains(recipe.requiredToolType))
         {
-            Debug.Log($"Item {item.name} is not of type {recipe.requiredToolType}");
+            Debug.Log($"Item {item.itemName} is not of type {recipe.requiredToolType}");
             return;
         }
-        if(!item.stats.ContainsKey(Stat.ItemTier))
+        if(!item.stats.ContainsKey("ItemTier"))
         {
-            Debug.Log($"Item {item.name} does not have stat ItemTier");
+            Debug.Log($"Item {item.itemName} does not have stat ItemTier");
             return;
         }
-        if (item.stats[Stat.ItemTier] < recipe.toolTierRequired)
+        if (item.stats["ItemTier"] < recipe.toolTierRequired)
         { 
-            Debug.Log($"Item {item.name} does not have sufficient ItemTier stat");
+            Debug.Log($"Item {item.itemName} does not have sufficient ItemTier stat");
             return;
         }
-        if (!item.stats.ContainsKey(Stat.BuildPower))
+        if (!item.stats.ContainsKey("BuildPower"))
         {
-            Debug.Log($"Item {item.name} does not have stat BuildPower");
+            Debug.Log($"Item {item.itemName} does not have stat BuildPower");
             return;
         }
         if (!canBuild())
@@ -126,7 +126,7 @@ public class BuildableEntityData : EntityData, IInteractable
             Debug.Log("Missing Materials");
             return;
         }
-        buildPoints += (int)item.stats[Stat.BuildPower];
+        buildPoints += (int)item.stats["BuildPower"];
 
         CheckIfBuilt();
     }
@@ -164,7 +164,7 @@ public class BuildableEntityData : EntityData, IInteractable
     public void RequestInventoryDataServerRpc(ulong clientId)
     {
 
-        List<int> itemIds = new();
+        List<FixedString32Bytes> itemIds = new();
         List<int> quantities = new();
 
         foreach (var slot in inventory.syncedSlots)
@@ -180,7 +180,7 @@ public class BuildableEntityData : EntityData, IInteractable
         });
     }
     [ClientRpc]
-    private void SendInventoryDataClientRpc(int[] itemIds, int[] quantities, ClientRpcParams rpcParams = default)
+    private void SendInventoryDataClientRpc(FixedString32Bytes[] itemIds, int[] quantities, ClientRpcParams rpcParams = default)
     {
         if (itemIds.Length != quantities.Length)
         {

@@ -1,1 +1,0 @@
-public enum Tag { None, All, Axe, Pick, Wood, Belt, Coal, Hammer}

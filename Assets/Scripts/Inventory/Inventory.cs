@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -64,16 +65,16 @@ public class Inventory : NetworkBehaviour
     public void AddItem(ItemStack stack)
     {
         if (!IsServer) return;
-        if (stack.itemId == 0) return;
+        if (stack.itemId == "") return;
 
-        var item = GameDatabaseManager.Instance.Items.Get(stack.itemId);
+        var item = GameDatabaseManager.Instance.Items[stack.itemId];
         if (!Accepts(stack.itemId))
         {
-            Debug.LogWarning($"[Inventory] Item {item.name} not accepted.");
+            Debug.LogWarning($"[Inventory] Item {item.itemName} not accepted.");
             return;
         }
 
-        if (item.isStackable)
+        if (item.stackSize>1)
         {
             for (int i = 0; i < syncedSlots.Count; i++)
             {
@@ -89,7 +90,7 @@ public class Inventory : NetworkBehaviour
 
         for (int i = 0; i < syncedSlots.Count; i++)
         {
-            if (syncedSlots[i].itemId == 0)
+            if (syncedSlots[i].itemId == "")
             {
                 syncedSlots[i] = stack.Clone();
                 return;
@@ -130,7 +131,7 @@ public class Inventory : NetworkBehaviour
         return true;
     }
 
-    public int Count(int itemId)
+    public int Count(FixedString32Bytes itemId)
     {
         int total = 0;
         foreach (var stack in syncedSlots)
@@ -141,27 +142,27 @@ public class Inventory : NetworkBehaviour
 
     public bool Has(ItemStack stack) => Count(stack.itemId) >= stack.quantity;
 
-    public bool Accepts(int itemId)
+    public bool Accepts(FixedString32Bytes itemId)
     {
-        var item = GameDatabaseManager.Instance.Items.Get(itemId);
+        var item = GameDatabaseManager.Instance.Items[itemId];
         return acceptedItems.Count == 0 || acceptedItems.Contains(item);
     }
     [ServerRpc(RequireOwnership = false)]
-    public void RequestSetSlotServerRpc(int index, int itemId, int quantity)
+    public void RequestSetSlotServerRpc(int index, FixedString32Bytes itemId, int quantity)
     {
         if (index < 0 || index >= syncedSlots.Count) return;
         syncedSlots[index] = new ItemStack(itemId, quantity);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void RequestAddItemServerRpc(int itemId, int quantity)
+    public void RequestAddItemServerRpc(string itemId, int quantity)
     {
         var item = new ItemStack(itemId, quantity);
         AddItem(item);
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void RequestRemoveItemServerRpc(int itemId, int quantity)
+    public void RequestRemoveItemServerRpc(string itemId, int quantity)
     {
         var item = new ItemStack(itemId, quantity);
         RemoveStack(item);

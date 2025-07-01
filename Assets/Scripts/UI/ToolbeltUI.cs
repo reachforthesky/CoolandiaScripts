@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -76,7 +77,7 @@ public class ToolbeltUI : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(slotContainer);
     }
 
-    private void UpdateHighlight(int selectedIndex, int itemId)
+    private void UpdateHighlight(int selectedIndex, FixedString32Bytes itemId)
     {
         for (int i = 0; i < slotUIs.Count; i++)
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using static UnityEngine.EventSystems.EventTrigger;
@@ -7,7 +8,7 @@ using static UnityEngine.EventSystems.EventTrigger;
 public class EntityData : NetworkBehaviour, IItemUsable, IInteractable
 {
     [Header("Entity Properties")]
-    public Tag DestructiveTool;
+    public string DestructiveToolTag;
 
     [Header("Drops")]
     public List<ItemData> drops = new List<ItemData>();
@@ -33,9 +34,9 @@ public class EntityData : NetworkBehaviour, IItemUsable, IInteractable
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void UseItemServerRpc(int itemId)
+    public void UseItemServerRpc(FixedString32Bytes itemId)
     {
-        var item = GameDatabaseManager.Instance.Items.Get(itemId);
+        var item = GameDatabaseManager.Instance.Items[itemId];
         ItemUsed(item);
     }
     /// <summary>
@@ -46,18 +47,18 @@ public class EntityData : NetworkBehaviour, IItemUsable, IInteractable
     {
         var tags = usedItem.tags;
 
-        if ( DestructiveTool == Tag.All || tags.Contains(DestructiveTool)) 
+        if ( DestructiveToolTag == "All" || tags.Contains(DestructiveToolTag)) 
         {
-            if (statHandler && statHandler.stats.ContainsKey(Stat.Health))
+            if (statHandler && statHandler.stats.ContainsKey("Health"))
             {
-                statHandler.stats[Stat.Health]-= usedItem.damage;
-                Debug.Log($"{name} was hit with a {usedItem.name}. Remaining health: {statHandler.stats[Stat.Health]}");
+                statHandler.stats["Health"] -= usedItem.stats["damage"];
+                Debug.Log($"{name} was hit with a {usedItem.itemName}. Remaining health: {statHandler.stats["Health"]}");
             }
-            receiveHit?.Invoke(usedItem.damage);
+            receiveHit?.Invoke((int)usedItem.stats["damage"]);
         }
         else
         {
-            Debug.Log($"{name} is unaffected by {usedItem.name}.");
+            Debug.Log($"{name} is unaffected by {usedItem.itemName}.");
         }
         itemUsed?.Invoke(usedItem);
     }

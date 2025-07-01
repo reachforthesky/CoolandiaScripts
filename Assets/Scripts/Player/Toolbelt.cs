@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using Unity.Collections;
 
 public class Toolbelt : MonoBehaviour
 {
@@ -11,7 +12,7 @@ public class Toolbelt : MonoBehaviour
     public int selectedSlotIndex { get; private set; } = -1;
 
 
-    public event Action<int, int> OnSlotChanged;
+    public event Action<int, FixedString32Bytes> OnSlotChanged;
     public event Action OnToolbeltResize;
     public event Action OnContentsChanged;
 
@@ -54,15 +55,15 @@ public class Toolbelt : MonoBehaviour
 
         selectedSlotIndex = index;
         var itemId = toolbeltInventory.slots[index].stack.itemId;
-        ItemData item = GameDatabaseManager.Instance.Items.Get(itemId);
+        ItemData item = GameDatabaseManager.Instance.Items[itemId];
 
-        Debug.Log(item != null
+        Debug.Log(!item.IsEmpty()
             ? $"Equipped slot {index + 1}: {item.itemName}"
             : $"Slot {index + 1} is empty.");
 
-        var id = item != null
+        var id = !item.IsEmpty()
             ? item.itemId
-            : 0;
+            : "";
 
         OnSlotChanged?.Invoke(index, id);
     }
@@ -112,7 +113,7 @@ public class Toolbelt : MonoBehaviour
     public ItemData GetEquippedItem()
     {
         return (selectedSlotIndex >= 0 && selectedSlotIndex < toolbeltInventory.slots.Count)
-            ? GameDatabaseManager.Instance.Items.Get(toolbeltInventory.slots[selectedSlotIndex].stack.itemId)
-            : null;
+            ? GameDatabaseManager.Instance.Items[toolbeltInventory.slots[selectedSlotIndex].stack.itemId]
+            : ItemData.Empty();
     }
 }

@@ -32,7 +32,7 @@ public class DropSpawner : NetworkBehaviour
     {
 
         if (!IsServer) return;
-        if (dropPrefabId == -1 || item == null) return;
+        if (dropPrefabId == -1 || item.IsEmpty()) return;
 
         var data = new PersistentEntityData
         {

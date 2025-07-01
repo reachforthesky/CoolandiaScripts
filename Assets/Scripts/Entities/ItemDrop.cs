@@ -1,3 +1,4 @@
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -20,13 +21,13 @@ public class ItemDrop : NetworkBehaviour
 
     private ItemData itemData;
 
-    public NetworkVariable<int> itemId = new(0, NetworkVariableReadPermission.Everyone);
+    public NetworkVariable<FixedString32Bytes> itemId = new("", NetworkVariableReadPermission.Everyone);
 
     public override void OnNetworkSpawn()
     {
         itemId.OnValueChanged += OnItemIdChanged;
 
-        if (IsServer && itemData != null)
+        if (IsServer)
         {
             itemId.Value = itemData.itemId;
         }
@@ -37,29 +38,26 @@ public class ItemDrop : NetworkBehaviour
         }
     }
 
-    private void OnItemIdChanged(int previous, int current)
+    private void OnItemIdChanged(FixedString32Bytes previous, FixedString32Bytes current)
     {
         TryResolveItem(current);
     }
 
-    private void TryResolveItem(int id)
+    private void TryResolveItem(FixedString32Bytes id)
     {
-        itemData = GameDatabaseManager.Instance.Items.Get(id);
-        if (itemData != null)
-        {
-            UpdateVisuals();
-        }
+        itemData = GameDatabaseManager.Instance.Items[id];
+        UpdateVisuals();
     }
 
     private void UpdateVisuals()
     {
-        if (iconRenderer != null && itemData.icon != null)
+        if (iconRenderer != null && itemData.iconId != null)
         {
-            iconRenderer.sprite = itemData.icon;
+            //iconRenderer.sprite = itemData.icon;
 
-            float spriteHeight = itemData.icon.bounds.size.y;
-            float scale = targetSize / spriteHeight;
-            iconRenderer.transform.localScale = Vector3.one * scale;
+            //float spriteHeight = itemData.icon.bounds.size.y;
+            //float scale = targetSize / spriteHeight;
+            //iconRenderer.transform.localScale = Vector3.one * scale;
             iconRenderer.transform.localPosition = new Vector3(0f, verticleOffset, 0f);
         }
     }
@@ -135,7 +133,7 @@ public class ItemDrop : NetworkBehaviour
 
     public void TryPickup(GameObject collector)
     {
-        if (!IsServer || pickedUp || itemData == null) return;
+        if (!IsServer || pickedUp || !itemData.IsEmpty() ) return;
 
         var inventory = collector.GetComponent<Inventory>();
         if (inventory)

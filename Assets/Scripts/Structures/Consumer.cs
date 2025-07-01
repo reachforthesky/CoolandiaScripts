@@ -19,13 +19,13 @@ public class FuelConsumer : MonoBehaviour
     private void Update()
     {
         if (!IsBurning) {
-            ItemData selectedFuel = null;
+            ItemData selectedFuel = ItemData.Empty();
             foreach (var slot in fuelInventory.syncedSlots)
             {
                 if (acceptedFuels.Where<ItemData>(item => item.itemId == slot.itemId).Count() > 0)
-                    selectedFuel = GameDatabaseManager.Instance.Items.Get(slot.itemId);
+                    selectedFuel = GameDatabaseManager.Instance.Items[slot.itemId];
             }
-            if (selectedFuel != null)
+            if (!selectedFuel.IsEmpty())
                 fuelInventory.RemoveStack(new ItemStack(selectedFuel.itemId, 1));
                 AddFuel(selectedFuel, 1);
         }
@@ -42,7 +42,7 @@ public class FuelConsumer : MonoBehaviour
 
     private float GetFuelValue(ItemData item)
     {
-        if (item && item.stats != null && item.stats.TryGetValue(Stat.FuelAmount, out float value))
+        if (!item.IsEmpty() && item.stats != null && item.stats.TryGetValue("FuelAmount", out float value))
         {
             return value;
         }

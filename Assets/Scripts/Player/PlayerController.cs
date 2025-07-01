@@ -1,6 +1,7 @@
 using AYellowpaper.SerializedCollections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -21,8 +22,8 @@ public class PlayerController : NetworkBehaviour
     [SerializeField] private GameObject uiCanvasPrefab;
     [SerializeField] private GameObject InventoryUIPrefab; 
     [SerializedDictionary("Stat", "Value")]
-    public SerializedDictionary<Stat, int> stats = new SerializedDictionary<Stat, int>{ 
-        { Stat.ToolbeltSize, 2 }, 
+    public SerializedDictionary<string, int> stats = new SerializedDictionary<string, int>{ 
+        { "ToolbeltSize", 2 }, 
     };
 
     private CharacterController controller;
@@ -161,12 +162,12 @@ public class PlayerController : NetworkBehaviour
     void TryUseItem()
     {
         var equipped = toolbelt.GetEquippedItem();
-        if (equipped == null)
+        if (equipped.IsEmpty())
         {
             Debug.Log("No tool equipped.");
             return;
         }
-        itemUseFlashUI.Flash(equipped.icon);
+        //itemUseFlashUI.Flash(equipped.icon);
         Vector3 hitDirection = cam.transform.forward;
         hitDirection.y = 0;
         Ray ray = new Ray(transform.position + Vector3.up, hitDirection);
@@ -176,15 +177,16 @@ public class PlayerController : NetworkBehaviour
             if (target != null)
             {
                 ulong targetId = target.NetworkObjectId;
-                int itemId = equipped.itemId;
+                var itemId = equipped.itemId;
                 UseItemOnEntityServerRpc(targetId, itemId);
             }
         }
     }
     void TryUseItem(ItemData item)
     {
-        if (IsOwner)
-        itemUseFlashUI.Flash(item.icon);
+        if (!IsOwner)
+            return;
+        //itemUseFlashUI.Flash(item.icon);
         Vector3 hitDirection = cam.transform.forward;
         hitDirection.y = 0;
         Ray ray = new Ray(transform.position + Vector3.up, hitDirection);
@@ -198,14 +200,14 @@ public class PlayerController : NetworkBehaviour
         } // send ID or enum, not whole object
     }
     [ServerRpc]
-    private void UseItemOnEntityServerRpc(ulong targetId, int itemId)
+    private void UseItemOnEntityServerRpc(ulong targetId, FixedString32Bytes itemId)
     {
         if (!NetworkManager.Singleton.SpawnManager.SpawnedObjects.TryGetValue(targetId, out var netObj)) return;
         var entity = netObj.GetComponent<EntityData>();
         if (entity == null) return;
 
-        var item = GameDatabaseManager.Instance.Items.Get(itemId);
-        if (item != null)
+        var item = GameDatabaseManager.Instance.Items[itemId];
+        if (!item.IsEmpty())
             entity.ItemUsed(item);
     }
     [ServerRpc]
@@ -258,12 +260,12 @@ public class PlayerController : NetworkBehaviour
         transform.position = pos;
         controller.enabled = true;
     }
-    public float getStat(Stat stat)
+    public float getStat(string stat)
     {
         var statAccumulator = 0f;
         foreach (var armor in equipment.equippedArmor)
         {
-            if (armor == null) continue;
+            if (armor.IsEmpty()) continue;
             statAccumulator += armor.stats[stat];
         }
         return stats[stat] + statAccumulator;
@@ -290,7 +292,7 @@ public class PlayerController : NetworkBehaviour
     }
     void updateEquipment()
     {
-        toolbelt.UpdateToolbeltSize((int)getStat(Stat.ToolbeltSize));
+        toolbelt.UpdateToolbeltSize((int)getStat("ToolbeltSize"));
     }
 
 }

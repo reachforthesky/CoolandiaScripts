@@ -93,10 +93,10 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     public void Redraw()
     {
         var stack = binding?.GetStack() ?? ItemStack.Empty();
-        var stackItem = GameDatabaseManager.Instance.Items.Get(stack.itemId);
-        icon.enabled = stackItem;
-        if(stackItem)
-            icon.sprite = stackItem.icon;
+        var stackItem = GameDatabaseManager.Instance.Items[stack.itemId];
+        icon.enabled = !stackItem.IsEmpty();
+        /*if(!stackItem.IsEmpty())
+            icon.sprite = stackItem.icon;*/
         stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         SetPlaceholder(stackItem); 
     }
@@ -104,7 +104,7 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     {
         currentItem = stack;
 
-        if (stack.itemId == 0)
+        if (stack.itemId == "")
         {
             icon.enabled = false;
             stackText.text = "";
@@ -112,17 +112,17 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
         else
         {
             icon.enabled = true;
-            icon.sprite = GameDatabaseManager.Instance.Items.Get(stack.itemId).icon;
+            //icon.sprite = GameDatabaseManager.Instance.Items[stack.itemId].icon;
             stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         }
     }
 
     public void SetPlaceholder(ItemData itemData)
     {
-        if (!icon.sprite && itemData != null)
+        if (!icon.sprite && !itemData.IsEmpty())
         {
             placeholderText.enabled = true;
-            placeholderText.text = itemData.name;
+            placeholderText.text = itemData.itemName;
         }
         else { placeholderText.enabled = false; }
     }

@@ -16,7 +16,7 @@ public class DeathHandler : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     private void CheckForDeath(int damageTaken)
     {
-        if (statHandler && statHandler.stats.ContainsKey(Stat.Health) && statHandler.stats[Stat.Health] <= 0)
+        if (statHandler && statHandler.stats.ContainsKey("Health") && statHandler.stats["Health"] <= 0)
         {
             parentEntityData.DestroyEntity();
         }

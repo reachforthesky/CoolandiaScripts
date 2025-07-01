@@ -33,7 +33,7 @@ public class DragManager : MonoBehaviour
         originalSlot = fromSlot;
         draggingStack = stack.Clone();
 
-        dragImage.sprite = GameDatabaseManager.Instance.Items.Get(draggingStack.itemId).icon;
+        //dragImage.sprite = GameDatabaseManager.Instance.Items[draggingStack.itemId].icon;
         dragIconInstance.SetActive(true);
     }
 
@@ -67,7 +67,7 @@ public class DragManager : MonoBehaviour
 
         // --- Merge ---
         if (!targetStack.IsEmpty() && targetStack.itemId == dragStack.itemId &&
-            GameDatabaseManager.Instance.Items.Get(dragStack.itemId).isStackable)
+            GameDatabaseManager.Instance.Items[dragStack.itemId].IsStackable())
         {
             var merged = new ItemStack(dragStack.itemId, targetStack.quantity + dragStack.quantity);
             targetSlot.binding.RequestSet(merged);

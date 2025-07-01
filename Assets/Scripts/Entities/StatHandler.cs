@@ -5,7 +5,7 @@ public class StatHandler : MonoBehaviour
 {
 
     [SerializedDictionary("Stat", "Value")]
-    public SerializedDictionary<Stat, float> stats = new SerializedDictionary<Stat, float>();
+    public SerializedDictionary<string, float> stats = new SerializedDictionary<string, float>();
 
     private PlayerEquipment equipment;
 
@@ -25,7 +25,7 @@ public class StatHandler : MonoBehaviour
         
     }
 
-    public float GetEffectiveStat(Stat stat)
+    public float GetEffectiveStat(string stat)
     {
         var baseStat = stats[stat];
 

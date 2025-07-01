@@ -6,28 +6,19 @@ using UnityEngine;
 
 public class PlayerEquipment : MonoBehaviour
 {
-    public ItemData?[] equippedArmor = new ItemData[6];
+    public ItemData[] equippedArmor = new ItemData[6];
 
     public event Action? onPlayerEquipNew;
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Keypad3))
-        {
-            ItemData temp = (ItemData)ScriptableObject.CreateInstance("ItemData");
-            temp.isStackable = false;
-            temp.tags = new List<Tag> { Tag.Belt };
-            temp.itemName = "toolbelt";
-            temp.stats.Add(Stat.ToolbeltSize, 3);
-            EquipArmor(temp);
-        }
     }
 
     private void Start()
     {
         for (int i = 0; i < 6; i++)
         {
-            equippedArmor[i] = null;
+            equippedArmor[i] = ItemData.Empty();
         }
     }
 
@@ -44,10 +35,10 @@ public class PlayerEquipment : MonoBehaviour
 
     private int ItemDataToIndex(ItemData item)
     {
-        foreach (Tag tag in item.tags) {
+        foreach (string tag in item.tags) {
             switch (tag)
             {
-                case Tag.Belt:
+                case "belt":
                     return 2;
                 default:
                     continue;
