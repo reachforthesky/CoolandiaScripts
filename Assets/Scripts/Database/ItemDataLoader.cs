@@ -1,72 +1,63 @@
-﻿// ItemDataLoader_Dapper.cs
-using System.Collections.Generic;
+﻿using SQLite;
 using System.Linq;
-using Dapper;
-using Unity.VisualScripting.Dependencies.Sqlite;
-
-public class Tag
-{
-    public string TagId { get; set; }
-}
+using System.Collections.Generic;
 
 public static class ItemDataLoader
 {
     public static List<ItemData> LoadAllItems(string dbPath)
     {
-        List<ItemData> items = new List<ItemData>();
+        List<ItemData> items = new();
 
-        string connectionString = $"URI=file:{dbPath}";
+        var connection = new SQLiteConnection(dbPath, SQLiteOpenFlags.ReadOnly);
 
-        using (var connection = new SQLiteConnection(connectionString))
+        var itemRows = connection.Query<ItemRow>("SELECT ItemId, Name, IconSpriteId, StackLimit FROM Items;");
+
+        foreach (var row in itemRows)
         {
+            var tags = connection.Query<Tag>(
+                @"SELECT T.TagId FROM ItemTags IT JOIN Tags T ON IT.TagId = T.TagId WHERE IT.ItemId = ?;",
+                row.ItemId
+            ).Select(row=>row.TagId).ToList();
 
-            // Get base items
-            var itemRows = connection.Query<(string ItemId, string Name, int StackLimit)>(
-                "SELECT ItemId, Name, StackLimit FROM Items;"
+
+            var statPairs = connection.Query<StatPair>(
+                @"SELECT S.StatId, ISI.Value FROM ItemStats ISI JOIN Stats S ON ISI.StatId = S.StatId WHERE ISI.ItemId = ?;",
+                row.ItemId
             );
 
-            foreach (var row in itemRows)
+            Dictionary<string, float> stats = statPairs.ToDictionary(row => row.StatId, row => row.Value);
+
+            items.Add(new ItemData
             {
-                var itemId = row.ItemId;
-
-                // Tags: simple list
-                var tags = connection.Query<Tag>(
-                    @"SELECT T.TagId
-                      FROM ItemTags IT
-                      JOIN Tags T ON IT.TagId = T.TagId
-                      WHERE IT.ItemId = @ItemId;",
-                    new { ItemId = itemId }
-                ).Select(tag => tag.TagId).ToList();
-
-                // Stats: key-value pairs
-                var statPairs = connection.Query<(string StatId, float Value)>(
-                    @"SELECT S.StatId, ISI.Value
-                      FROM ItemStats ISI
-                      JOIN Stats S ON ISI.StatId = S.StatId
-                      WHERE ISI.ItemId = @ItemId;",
-                    new { ItemId = itemId }
-                );
-
-                var stats = new Dictionary<string, float>();
-                foreach (var pair in statPairs)
-                {
-                    stats[pair.StatId] = pair.Value;
-                }
-
-                ItemData item = new ItemData
-                {
-                    itemId = row.ItemId,
-                    itemName = row.Name,
-                    iconId = row.ItemId, // or whatever logic you want
-                    stackSize = row.StackLimit,
-                    tags = tags,
-                    stats = stats
-                };
-
-                items.Add(item);
-            }
+                itemId = row.ItemId,
+                itemName = row.Name,
+                iconId = row.IconSpriteId ?? "",
+                stackSize = row.StackLimit,
+                tags = tags,
+                stats = stats
+            });
         }
 
+        connection.Close();
         return items;
     }
+}
+
+public class ItemRow
+{
+    [PrimaryKey]
+    public string ItemId { get; set; }
+    public string Name { get; set; }
+    public string IconSpriteId { get; set; }
+    public int StackLimit { get; set; }
+}
+public class  Tag
+{
+    public string TagId { get; set; }
+}
+
+public class StatPair
+{
+    public string StatId { get; set; }
+    public float Value { get; set; }
 }

@@ -1,6 +1,7 @@
 using Microsoft.Unity.VisualStudio.Editor;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -146,7 +147,7 @@ public class BuildingSystem : NetworkBehaviour
         var spriteRenderer = recipe.structurePrefab.GetComponent<SpriteRenderer>();
         if (spriteRenderer != null)
         {
-            string spriteId = GameDatabaseManager.Instance.Sprites.GetId(spriteRenderer.sprite);
+            var spriteId = GameDatabaseManager.Instance.Sprites.FirstOrDefault(entry => entry.Value == spriteRenderer.sprite).Key;
             buildGhostEntity.spriteId.Value = spriteId;
         }
     }

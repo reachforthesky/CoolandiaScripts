@@ -33,7 +33,8 @@ public class DragManager : MonoBehaviour
         originalSlot = fromSlot;
         draggingStack = stack.Clone();
 
-        //dragImage.sprite = GameDatabaseManager.Instance.Items[draggingStack.itemId].icon;
+        var iconId = GameDatabaseManager.Instance.Items[draggingStack.itemId].iconId;
+        dragImage.sprite = GameDatabaseManager.Instance.Sprites[draggingStack.itemId];
         dragIconInstance.SetActive(true);
     }
 

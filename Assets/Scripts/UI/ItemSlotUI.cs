@@ -94,9 +94,10 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
     {
         var stack = binding?.GetStack() ?? ItemStack.Empty();
         var stackItem = GameDatabaseManager.Instance.Items[stack.itemId];
+        var stackIcon = GameDatabaseManager.Instance.Sprites[stackItem.iconId];
         icon.enabled = !stackItem.IsEmpty();
-        /*if(!stackItem.IsEmpty())
-            icon.sprite = stackItem.icon;*/
+        if(!stackItem.IsEmpty())
+            icon.sprite = stackIcon;
         stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         SetPlaceholder(stackItem); 
     }
@@ -112,7 +113,8 @@ public class ItemSlotUI : MonoBehaviour, IPointerClickHandler, IPointerEnterHand
         else
         {
             icon.enabled = true;
-            //icon.sprite = GameDatabaseManager.Instance.Items[stack.itemId].icon;
+            var iconId = GameDatabaseManager.Instance.Items[stack.itemId].iconId;
+            icon.sprite = GameDatabaseManager.Instance.Sprites[iconId];
             stackText.text = stack.quantity > 1 ? stack.quantity.ToString() : "";
         }
     }

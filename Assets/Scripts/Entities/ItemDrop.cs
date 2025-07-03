@@ -53,11 +53,12 @@ public class ItemDrop : NetworkBehaviour
     {
         if (iconRenderer != null && itemData.iconId != null)
         {
-            //iconRenderer.sprite = itemData.icon;
+            var icon = GameDatabaseManager.Instance.Sprites[itemData.iconId];
+            iconRenderer.sprite = icon;
 
-            //float spriteHeight = itemData.icon.bounds.size.y;
-            //float scale = targetSize / spriteHeight;
-            //iconRenderer.transform.localScale = Vector3.one * scale;
+            float spriteHeight = icon.bounds.size.y;
+            float scale = targetSize / spriteHeight;
+            iconRenderer.transform.localScale = Vector3.one * scale;
             iconRenderer.transform.localPosition = new Vector3(0f, verticleOffset, 0f);
         }
     }

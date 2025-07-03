@@ -19,7 +19,7 @@ public struct ItemData
     /// <summary>
     /// Reference to the icon asset (by ID, not Sprite).
     /// </summary>
-    public string iconId;
+    public FixedString32Bytes iconId;
 
     /// <summary>
     /// Max stack size for this item type.

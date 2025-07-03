@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 public class BuildableEntityData : EntityData, IInteractable
 {
     public NetworkVariable<int> structureRecipeId = new();
-    public NetworkVariable<FixedString64Bytes> spriteId = new();
+    public NetworkVariable<FixedString32Bytes> spriteId = new();
     [SerializeField] public GameObject finishedStructurePrefab;
     [SerializeField] private GameObject buildableUIPrefab;
     public Inventory inventory;
@@ -34,7 +34,7 @@ public class BuildableEntityData : EntityData, IInteractable
         }
 
         // Sync sprite if already assigned
-        var sprite = GameDatabaseManager.Instance.Sprites.GetSprite(spriteId.Value.ToString());
+        var sprite = GameDatabaseManager.Instance.Sprites[spriteId.Value];
         if (sprite != null)
         {
             GetComponent<SpriteRenderer>().sprite = sprite;
@@ -83,10 +83,10 @@ public class BuildableEntityData : EntityData, IInteractable
     {
         spriteId.OnValueChanged -= OnSpriteIdChanged;
     }
-    private void OnSpriteIdChanged(FixedString64Bytes oldVal, FixedString64Bytes newVal)
+    private void OnSpriteIdChanged(FixedString32Bytes oldVal, FixedString32Bytes newVal)
     {
         SpriteRenderer sr = GetComponent<SpriteRenderer>();
-        Sprite sprite = GameDatabaseManager.Instance.Sprites.GetSprite(newVal.ToString());
+        Sprite sprite = GameDatabaseManager.Instance.Sprites[newVal];
         if (sprite != null)
             sr.sprite = sprite;
     }
